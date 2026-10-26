@@ -6,11 +6,12 @@ struct DashboardView: View {
     @ObservedObject var controller: DictationController
     @ObservedObject var store: LocalStore
     @State private var tab = "Overview"
+    @FocusState private var focusedTab: String?
     @State private var phrase = ""
     @State private var heardAs = ""
     @State private var editingID: UUID?
     private let accent = Color.blue
-    private let background = Color(red: 0.055, accent: 0.063, blue: 0.08)
+    private let background = Color(red: 0.055, green: 0.063, blue: 0.08)
     private var sessions: [UsageEntry] { store.data.sessions }
     private var today: [UsageEntry] { sessions.filter { Calendar.current.isDateInToday($0.date) } }
     private var days: [Date] { (0..<14).compactMap { Calendar.current.date(byAdding: .day, value: $0 - 13, to: Calendar.current.startOfDay(for: Date())) } }
@@ -26,7 +27,7 @@ struct DashboardView: View {
                     }
                 }.padding(.bottom, 32)
                 ForEach([("Overview", "square.grid.2x2"), ("Vocabulary", "text.book.closed"), ("Controls", "slider.horizontal.3")], id: \.0) { name, icon in
-                    SidebarItem(name: name, icon: icon, selected: tab == name) { tab = name }
+                    SidebarItem(name: name, icon: icon, selected: tab == name, focus: $focusedTab) { tab = name }
                 }
                 Spacer()
                 HStack(spacing: 6) { Circle().fill(controller.recording ? .red : accent).frame(width: 6); Text(controller.recording ? "Recording" : "On-device engine").font(.caption) }
@@ -245,11 +246,12 @@ private struct SidebarItem: View {
     let name: String
     let icon: String
     let selected: Bool
+    let focus: FocusState<String?>.Binding
     let action: () -> Void
-    @FocusState private var focused: Bool
+    private var focused: Bool { focus.wrappedValue == name }
     @State private var hovered = false
     var body: some View {
-        Button { focused = true; action() } label: {
+        Button { action(); focus.wrappedValue = name } label: {
             HStack(spacing: 12) {
                 Image(systemName: icon).font(.system(size: 15)).frame(width: 20)
                 Text(name).font(.system(size: 13, weight: selected ? .semibold : .medium))
@@ -259,7 +261,7 @@ private struct SidebarItem: View {
                 .background(selected ? Color.blue.opacity(0.10) : Color.white.opacity(hovered ? 0.045 : 0), in: RoundedRectangle(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.blue.opacity(focused ? 1 : selected ? 0.45 : 0), lineWidth: focused ? 2 : 1))
                 .contentShape(RoundedRectangle(cornerRadius: 12))
-        }.buttonStyle(.plain).focused($focused).focusEffectDisabled()
+        }.buttonStyle(.plain).focused(focus, equals: name).focusEffectDisabled()
             .onHover { hovered = $0 }.accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
