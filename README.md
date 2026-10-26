@@ -10,7 +10,7 @@ Open-source macOS 14+ dictation with local Whisper Base inference. Optimized and
 - **Hands-free:** press Fn+Space to start or latch a held recording; press Fn once to finish. Click the floating icon to start hands-free recording.
 - **Toggle mode:** choose Controls → Toggle. Tapping Fn then starts/stops recording.
 - **Fallback shortcut:** Control–Option–Space follows the selected recording mode.
-- **Finish/cancel:** the floating waveform uses live microphone metering. Click ✓ to finish or × / Escape to discard. A recording stops after 10 minutes. Cancellation during decoding discards its eventual result; it does not interrupt the model mid-inference. Once paste submission starts it cannot be cancelled.
+- **Finish/cancel:** the floating waveform uses live microphone metering. Click ✓ to finish or × / Escape to discard. A recording stops after 10 minutes. Cancellation requests decoder cancellation and discards its eventual result. Once paste submission starts it cannot be cancelled.
 
 Fn handling requires Accessibility permission and may conflict with macOS's Globe-key action or another dictation app. Set the Globe-key action to “Do Nothing” in macOS Keyboard settings if necessary. The app does not change system keyboard settings. Quit or reconfigure other apps using Fn. If macOS requests Input Monitoring, grant it to use Fn, or use the fallback shortcut.
 
@@ -24,9 +24,9 @@ The clipboard is temporarily populated, then restored after 900 ms if no other a
 
 ## Smart cleanup
 
-After transcription, the app edits spelling, grammar and punctuation, removes filler and false starts, and formats spoken lists before pasting. Say “bullet points” or “numbered list” to request a list, or “new paragraph” to separate paragraphs. Output uses plain text bullets and numbers so it works across apps. Controls → Smart cleanup turns this step on or off; it is on by default.
+After transcription, the app edits spelling, grammar and punctuation, removes filler and false starts, and formats spoken lists before pasting. Lists, ordered steps, paragraphs and short headings are inferred from the content without requiring spoken commands. Explicit requests such as “bullet points” or “new paragraph” are also honored. “So” is treated as a contextual transition, not an unconditional list command. Output uses plain text bullets and numbers so it works across apps. Controls → Smart cleanup turns this step on or off; it is on by default.
 
-Cleanup uses Apple's on-device Foundation Models on macOS 26+ with Apple Intelligence enabled and its model ready. It needs no API key or cloud transcription service. Other Macs retain ordinary local dictation. If cleanup is unavailable, fails, or changes protected literal numbers, URLs or email addresses, the original transcript is used. AI edits are not guaranteed to preserve every nuance; the dashboard retains the original transcript for comparison and restoration. Neither version is saved to disk. Statistics count original spoken words.
+Cleanup uses Apple's on-device Foundation Models on macOS 26+ with Apple Intelligence enabled and its model ready. It needs no API key or cloud transcription service. Other Macs retain ordinary local dictation. If cleanup is unavailable, fails, drops substantial content or the ending, or changes protected literal numbers, URLs or email addresses, the original transcript is used. AI edits are not guaranteed to preserve every nuance; the dashboard retains the original transcript for comparison and restoration. Neither version is saved to disk. Statistics count original spoken words.
 
 Vocabulary spellings also guide cleanup. Long transcripts are edited in small independent sections, so formatting across section boundaries may need adjustment.
 
@@ -38,7 +38,11 @@ Vocabulary entries supply recognition hints to local Whisper. Add names, jargon,
 
 ## Data and offline behavior
 
-The app stores counts, durations, dates, and vocabulary in `~/Library/Application Support/LocalDictation/usage.json`. Transcripts are kept in memory only. Temporary recordings are deleted after processing or normal shutdown; a crash or forced quit can leave a temporary WAV.
+The app stores counts, durations, dates, and vocabulary in `~/Library/Application Support/LocalDictation/usage.json`. Transcripts are kept in memory only. Audio is saved in `~/Library/Application Support/LocalDictation/Recordings` for recovery. The folder is restricted to the current user. Up to 30 recordings are retained for 24 hours; cleanup runs on launch, before capture, and every minute while idle. When the app is closed, expired files are removed the next time it runs. Transcripts remain in memory only.
+
+Failed transcription gets up to three attempts. Pending recordings are processed again on launch, and Overview → Recent recordings offers Retry, Delete, and Open folder. Recovery results stay in the dashboard rather than automatically pasting into a new destination. Retrying a completed recording does not add its words to statistics again. Explicit cancellation deletes that recording. Normal quit preserves unfinished audio; recovery after a forced crash depends on whether macOS finalized a readable audio file.
+
+Speech decoding uses timestamps and voice-activity-based chunking, processes the final short fragment, and adds silent padding to protect the ending. These measures reduce truncation but cannot guarantee perfect recognition. The raw transcript remains accessible if AI cleanup changes wording. A partial but plausible recognition result may not be detectable automatically; use the saved recording to retry.
 
 Download the multilingual Base model once using Controls. Model and tokenizer files are downloaded from Hugging Face. Speech inference runs locally with no speech API, analytics, or account. WhisperKit may attempt to fetch a tokenizer if local assets are corrupt; speech is not uploaded. The supported model path has been exercised with all networking denied.
 

@@ -88,6 +88,23 @@ struct DashboardView: View {
                 }.frame(maxWidth: .infinity, alignment: .leading).card()
             }
             heatmap
+            if !controller.savedRecordings.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack { Text("Recent recordings").font(.headline); Spacer(); Button("Open folder") { controller.revealRecordings() } }
+                    Text("Audio stays on this Mac for 24 hours, up to 30 recordings. Failed transcription retries automatically up to 3 times. Retry below to recover a result into this dashboard; it will not paste automatically.").font(.caption).foregroundStyle(.secondary)
+                    ForEach(controller.savedRecordings) { item in
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(item.created, style: .date) + Text(" · ") + Text(item.created, style: .time)
+                                Text("\(Int(item.duration)) seconds · \(item.state)").font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button("Retry") { Task { await controller.retryRecording(item) } }
+                            Button("Delete", role: .destructive) { controller.deleteRecording(item) }
+                        }.disabled(controller.busy || controller.recording || controller.starting)
+                    }
+                }.card()
+            }
             VStack(alignment: .leading, spacing: 12) {
                 HStack { Text("Latest transcript").font(.headline); Spacer(); Button("Copy") { controller.copy() }.disabled(controller.transcript.isEmpty); Button("Paste in last app") { Task { await controller.pasteLast() } }.disabled(controller.transcript.isEmpty || controller.busy || controller.recording) }
                 TextEditor(text: $controller.transcript).font(.body).scrollContentBackground(.hidden).frame(height: 130).disabled(controller.busy)
@@ -98,7 +115,7 @@ struct DashboardView: View {
                         Button("Use original") { controller.transcript = controller.rawTranscript; controller.cleanupNote = "Original restored" }.disabled(controller.busy)
                     }
                 }
-                Text("Transcript stays in memory. Only word counts, durations, and dates are saved.").font(.caption2).foregroundStyle(.secondary)
+                Text("Transcript stays in memory. Recent audio is saved locally for recovery for up to 24 hours.").font(.caption2).foregroundStyle(.secondary)
             }.card()
         }
     }
@@ -189,7 +206,7 @@ struct DashboardView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Smart cleanup").font(.headline)
                 Toggle("Clean up before pasting", isOn: $controller.cleanupEnabled).disabled(controller.busy)
-                Text("Fix spelling and grammar, remove filler words, and format spoken bullet points or numbered lists while preserving your meaning.").font(.callout)
+                Text("Fix spelling and grammar, remove filler words, and infer lists, ordered steps, headings and paragraphs while preserving your meaning.").font(.callout)
                 Text(controller.cleanupAvailability).font(.caption).foregroundStyle(.secondary)
                 Text("Runs entirely on this Mac using Apple Intelligence. If cleanup is unavailable or fails, the original transcript is used. You can compare and restore the original in Overview.").font(.caption).foregroundStyle(.secondary)
             }.card()

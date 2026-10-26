@@ -53,13 +53,17 @@ actor SpeechEngine {
     }
 
     func transcribe(_ url: URL, vocabulary: [String] = []) async throws -> String {
-        let samples = try AudioProcessor.loadAudioAsFloatArray(fromPath: url.path)
+        var samples = try AudioProcessor.loadAudioAsFloatArray(fromPath: url.path)
         guard AudioGate.hasSignal(samples) else { return "" }
+        // Preserve short utterances and the final speech fragment at a window boundary.
+        samples.append(contentsOf: repeatElement(Float(0), count: 8000))
         try await load()
         guard let pipe else { throw AppError.message("Speech model is not loaded.") }
         let hints = vocabulary.filter { !$0.isEmpty }.prefix(80).joined(separator: ", ")
         let tokens = hints.isEmpty ? nil : pipe.tokenizer.map { Array($0.encode(text: "Vocabulary: " + hints).suffix(200)) }
-        let results = try await pipe.transcribe(audioArray: samples, decodeOptions: DecodingOptions(task: .transcribe, detectLanguage: true, skipSpecialTokens: true, withoutTimestamps: true, promptTokens: tokens, suppressBlank: true))
-        return results.map(\.text).joined(separator: " ")
+        let results = try await pipe.transcribe(audioArray: samples, decodeOptions: DecodingOptions(task: .transcribe, detectLanguage: true, skipSpecialTokens: true, withoutTimestamps: false, windowClipTime: 0.1, promptTokens: tokens, suppressBlank: true, concurrentWorkerCount: 1, chunkingStrategy: .vad))
+        let text = Transcript.clean(results.map(\.text).joined(separator: " "))
+        guard !text.isEmpty else { throw AppError.message("Audio was recorded but no transcript was returned. The recording is available to retry.") }
+        return text
     }
 }

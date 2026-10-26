@@ -3,7 +3,8 @@ import Foundation
 public enum Transcript {
     /// Preserve wording and paragraph boundaries. No speculative rewriting.
     public static func clean(_ text: String) -> String {
-        text.replacingOccurrences(of: "<\\|[^|]*\\|>", with: "", options: .regularExpression)
+        text.replacingOccurrences(of: "[BLANK_AUDIO]", with: "")
+            .replacingOccurrences(of: "<\\|[^|]*\\|>", with: "", options: .regularExpression)
             .replacingOccurrences(of: "[ \\t]+", with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
