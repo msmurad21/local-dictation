@@ -1,0 +1,13 @@
+name: Build and test
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: swift test -c release
+      - name: Package development app
+        run: bash scripts/build-app.sh

@@ -1,0 +1,10 @@
+.build/
+.swiftpm/
+dist/
+.DS_Store
+validation.json
+*.p12
+*.key
+.env
+.env.*
+__pycache__/

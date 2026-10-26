@@ -1,0 +1,74 @@
+name: Publish signed app update
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Sources/**'
+      - 'Tests/**'
+      - 'Resources/**'
+      - 'Package.*'
+      - 'scripts/**'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: app-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: macos-15
+    # Set this repository variable only after the public feed and keys are configured.
+    if: vars.RELEASES_ENABLED == 'true'
+    env:
+      BUILD_PATH: ${{ runner.temp }}/local-dictation-build
+      APPCAST_URL: https://github.com/${{ github.repository }}/releases/latest/download/appcast.xml
+      SPARKLE_PUBLIC_KEY: ${{ vars.SPARKLE_PUBLIC_KEY }}
+      CODE_SIGN_IDENTITY: ${{ vars.CODE_SIGN_IDENTITY }}
+      RELEASE_BUILD: '1'
+      UNIVERSAL_BUILD: '1'
+      NOTARY_PROFILE: local-dictation-ci
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: swift test --scratch-path "$BUILD_PATH" -c release
+      - name: Configure release credentials
+        env:
+          CERTIFICATE_P12_BASE64: ${{ secrets.CERTIFICATE_P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          : "${CERTIFICATE_P12_BASE64:?Missing certificate}"
+          : "${SPARKLE_PRIVATE_KEY:?Missing Sparkle signing key}"
+          : "${APPLE_ID:?Missing notarization account}"
+          : "${APPLE_TEAM_ID:?Missing Apple team}"
+          : "${APPLE_APP_PASSWORD:?Missing notarization password}"
+          umask 077
+          printf '%s' "$CERTIFICATE_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          printf '%s' "$SPARKLE_PRIVATE_KEY" > "$RUNNER_TEMP/sparkle.key"
+          CI_KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+          echo "::add-mask::$CI_KEYCHAIN_PASSWORD"
+          security create-keychain -p "$CI_KEYCHAIN_PASSWORD" "$RUNNER_TEMP/release.keychain-db"
+          security set-keychain-settings -lut 21600 "$RUNNER_TEMP/release.keychain-db"
+          security unlock-keychain -p "$CI_KEYCHAIN_PASSWORD" "$RUNNER_TEMP/release.keychain-db"
+          security import "$RUNNER_TEMP/certificate.p12" -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$RUNNER_TEMP/release.keychain-db"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$CI_KEYCHAIN_PASSWORD" "$RUNNER_TEMP/release.keychain-db"
+          security list-keychains -d user -s "$RUNNER_TEMP/release.keychain-db" login.keychain-db
+          xcrun notarytool store-credentials "$NOTARY_PROFILE" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD"
+          echo "BUILD_NUMBER=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=build-$GITHUB_RUN_NUMBER-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          echo "SPARKLE_PRIVATE_KEY_FILE=$RUNNER_TEMP/sparkle.key" >> "$GITHUB_ENV"
+      - name: Build, sign and notarize
+        run: bash scripts/build-app.sh
+      - name: Publish archive and signed appcast
+        run: bash scripts/publish-release.sh
+      - name: Remove temporary credentials
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/release.keychain-db" || true
+          rm -f "$RUNNER_TEMP/certificate.p12" "$RUNNER_TEMP/sparkle.key"
