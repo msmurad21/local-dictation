@@ -50,6 +50,10 @@ import DictationCore
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 980, height: 760), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
             window.title = "Local Dictation"
             window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
+            window.toolbarStyle = .unified
+            window.backgroundColor = NSColor(red: 0.055, green: 0.063, blue: 0.08, alpha: 1)
+            window.isMovableByWindowBackground = true
             window.isReleasedWhenClosed = false
             window.minSize = NSSize(width: 850, height: 680)
             window.contentView = NSHostingView(rootView: DashboardView(controller: controller, store: controller.store))

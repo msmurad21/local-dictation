@@ -9,26 +9,29 @@ struct DashboardView: View {
     @State private var phrase = ""
     @State private var heardAs = ""
     @State private var editingID: UUID?
-    private let green = Color(red: 0.64, green: 0.91, blue: 0.57)
-    private let background = Color(red: 0.055, green: 0.067, blue: 0.065)
+    private let accent = Color.blue
+    private let background = Color(red: 0.055, accent: 0.063, blue: 0.08)
     private var sessions: [UsageEntry] { store.data.sessions }
     private var today: [UsageEntry] { sessions.filter { Calendar.current.isDateInToday($0.date) } }
     private var days: [Date] { (0..<14).compactMap { Calendar.current.date(byAdding: .day, value: $0 - 13, to: Calendar.current.startOfDay(for: Date())) } }
     var body: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 10) {
-                HStack { Image(systemName: "waveform").foregroundStyle(green); Text("LOCAL").tracking(3).fontWeight(.black) }.font(.title3).padding(.bottom, 32)
+                HStack(spacing: 12) {
+                    Image(systemName: "waveform").font(.system(size: 20, weight: .semibold)).foregroundStyle(.white)
+                        .frame(width: 38, height: 38).background(Color.blue.gradient, in: RoundedRectangle(cornerRadius: 12))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Local").font(.system(size: 19, weight: .semibold))
+                        Text("DICTATION").font(.system(size: 9, weight: .medium)).tracking(2).foregroundStyle(.secondary)
+                    }
+                }.padding(.bottom, 32)
                 ForEach([("Overview", "square.grid.2x2"), ("Vocabulary", "text.book.closed"), ("Controls", "slider.horizontal.3")], id: \.0) { name, icon in
-                    Button { tab = name } label: {
-                        Label(name, systemImage: icon).font(.system(size: 14, weight: .medium)).frame(maxWidth: .infinity, alignment: .leading).padding(12)
-                            .background(tab == name ? green.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 10))
-                            .foregroundStyle(tab == name ? green : .secondary)
-                    }.buttonStyle(.plain)
+                    SidebarItem(name: name, icon: icon, selected: tab == name) { tab = name }
                 }
                 Spacer()
-                HStack(spacing: 6) { Circle().fill(controller.recording ? .red : green).frame(width: 6); Text(controller.recording ? "Recording" : "On-device engine").font(.caption) }
+                HStack(spacing: 6) { Circle().fill(controller.recording ? .red : accent).frame(width: 6); Text(controller.recording ? "Recording" : "On-device engine").font(.caption) }
                 Text("No cloud. Just your voice.").font(.caption2).foregroundStyle(.secondary)
-            }.padding(24).padding(.top, 24).frame(width: 205).background(.white.opacity(0.025))
+            }.padding(20).padding(.top, 28).frame(width: 210).background(.white.opacity(0.018))
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     header
@@ -37,20 +40,27 @@ struct DashboardView: View {
                     else { controls }
                     if let error = controller.error { Label(error, systemImage: "exclamationmark.circle").font(.callout).foregroundStyle(.orange).textSelection(.enabled) }
                     if let error = store.saveError { Text(error).foregroundStyle(.orange) }
-                }.padding(30).padding(.top, 22)
+                }.padding(32).padding(.top, 20).frame(maxWidth: 1100, alignment: .leading).frame(maxWidth: .infinity)
             }
-        }.background(background).preferredColorScheme(.dark).frame(minWidth: 850, minHeight: 650)
+        }.buttonStyle(DashboardButtonStyle()).toggleStyle(.switch).tint(.blue).background(background).preferredColorScheme(.dark).frame(minWidth: 850, minHeight: 650)
     }
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(tab == "Overview" ? "Make room for your thoughts." : tab == "Vocabulary" ? "Words that sound like you." : "Your voice, your controls.").font(.system(size: 29, weight: .semibold, design: .rounded))
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(tab).font(.system(size: 30, weight: .semibold))
+                    Text(tab == "Overview" ? "Your voice, at a glance." : tab == "Vocabulary" ? "Make every word feel familiar." : "Make dictation work your way.").font(.system(size: 13)).foregroundStyle(.secondary)
+                }
                 Spacer()
                 Button { if controller.recording { controller.finish() } else { controller.toggleRecording() } } label: {
-                    Image(systemName: controller.recording ? "stop.fill" : "mic.fill").padding(10).background(green, in: Circle()).foregroundStyle(.black)
+                    Image(systemName: controller.recording ? "stop.fill" : "mic.fill").frame(width: 42, height: 42).background(Color.blue.gradient, in: RoundedRectangle(cornerRadius: 14)).foregroundStyle(.white)
                 }.buttonStyle(.plain).disabled(!controller.ready || controller.busy).help("Start or finish hands-free recording")
             }
-            HStack { Text(controller.status); if controller.busy { ProgressView().controlSize(.mini) } }.font(.callout).foregroundStyle(.secondary)
+            HStack(spacing: 8) {
+                Circle().fill(controller.recording ? Color.red : Color.blue).frame(width: 5, height: 5)
+                Text(controller.status)
+                if controller.busy { ProgressView().controlSize(.mini) }
+            }.font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary).padding(.top, 8)
         }
     }
     private var overview: some View {
@@ -64,7 +74,7 @@ struct DashboardView: View {
                 HStack { Text("Your voice, in motion").font(.headline); Spacer(); Text("LAST 14 DAYS").font(.caption2).tracking(1).foregroundStyle(.secondary) }
                 Chart(days, id: \.self) { day in
                     BarMark(x: .value("Day", day, unit: .day), y: .value("Words", UsageStats.dailyWords(sessions, day: day)))
-                        .foregroundStyle(green.gradient).cornerRadius(3)
+                        .foregroundStyle(accent.gradient).cornerRadius(3)
                 }.chartXAxis { AxisMarks(values: .stride(by: .day, count: 3)) { _ in AxisValueLabel(format: .dateTime.month(.abbreviated).day()); AxisGridLine() } }
                     .chartYAxis { AxisMarks(position: .leading) }.frame(height: 125)
                 if sessions.isEmpty { Text("Your first dictation will bring this chart to life.").font(.caption).foregroundStyle(.secondary) }
@@ -75,17 +85,17 @@ struct DashboardView: View {
                     Chart(days, id: \.self) { day in
                         let entries = sessions.filter { Calendar.current.isDate($0.date, inSameDayAs: day) }
                         if !entries.isEmpty {
-                            LineMark(x: .value("Day", day), y: .value("WPM", UsageStats.wpm(entries))).foregroundStyle(green)
-                            PointMark(x: .value("Day", day), y: .value("WPM", UsageStats.wpm(entries))).foregroundStyle(green)
+                            LineMark(x: .value("Day", day), y: .value("WPM", UsageStats.wpm(entries))).foregroundStyle(accent)
+                            PointMark(x: .value("Day", day), y: .value("WPM", UsageStats.wpm(entries))).foregroundStyle(accent)
                         }
                     }.chartXAxis(.hidden).frame(height: 72)
                     Text("Recording time includes pauses.").font(.caption2).foregroundStyle(.secondary)
-                }.frame(maxWidth: .infinity).card()
+                }.frame(maxWidth: .infinity, alignment: .leading).frame(height: 136, alignment: .topLeading).card()
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Time on mic").font(.headline)
-                    Text(String(format: "%.1f min", sessions.reduce(0) { $0 + $1.duration } / 60)).font(.system(size: 30, weight: .medium, design: .rounded)).foregroundStyle(green)
+                    Text(String(format: "%.1f min", sessions.reduce(0) { $0 + $1.duration } / 60)).font(.system(size: 30, weight: .medium, design: .rounded)).foregroundStyle(accent)
                     Text("\(sessions.count) completed dictations").font(.caption).foregroundStyle(.secondary)
-                }.frame(maxWidth: .infinity, alignment: .leading).card()
+                }.frame(maxWidth: .infinity, alignment: .leading).frame(height: 136, alignment: .topLeading).card()
             }
             heatmap
             if !controller.savedRecordings.isEmpty {
@@ -122,7 +132,7 @@ struct DashboardView: View {
     private func metric(_ label: String, value: String, caption: String, icon: String) -> some View {
         VStack(alignment: .leading, spacing: 13) {
             HStack { Text(label).font(.system(size: 9, weight: .semibold)).tracking(1); Spacer(); Image(systemName: icon) }.foregroundStyle(.secondary)
-            Text(value).font(.system(size: 34, weight: .semibold, design: .rounded)).foregroundStyle(green)
+            Text(value).font(.system(size: 34, weight: .semibold, design: .rounded)).foregroundStyle(accent)
             Text(caption).font(.system(size: 10)).foregroundStyle(.secondary)
         }.frame(maxWidth: .infinity, alignment: .leading).card()
     }
@@ -140,7 +150,7 @@ struct DashboardView: View {
                         ForEach(0..<7, id: \.self) { weekday in
                             let date = calendar.date(byAdding: .day, value: week * 7 + weekday, to: start)!
                             let words = UsageStats.dailyWords(sessions, day: date)
-                            RoundedRectangle(cornerRadius: 3).fill(words == 0 ? Color.white.opacity(0.055) : green.opacity(words < 100 ? 0.3 : words < 500 ? 0.55 : words < 1000 ? 0.8 : 1))
+                            RoundedRectangle(cornerRadius: 3).fill(words == 0 ? Color.white.opacity(0.055) : accent.opacity(words < 100 ? 0.3 : words < 500 ? 0.55 : words < 1000 ? 0.8 : 1))
                                 .frame(maxWidth: .infinity).frame(height: 12).opacity(date > startOfToday ? 0.2 : 1)
                                 .help("\(date.formatted(date: .abbreviated, time: .omitted)): \(words) words")
                                 .accessibilityLabel("\(date.formatted(date: .abbreviated, time: .omitted)), \(words) words")
@@ -148,7 +158,7 @@ struct DashboardView: View {
                     }
                 }
             }
-            HStack(spacing: 4) { Text("Less"); ForEach([0.05, 0.3, 0.55, 0.8, 1.0], id: \.self) { opacity in RoundedRectangle(cornerRadius: 2).fill(green.opacity(opacity)).frame(width: 10, height: 10) }; Text("More"); Spacer(); Text("Real usage only · no historical estimates") }.font(.system(size: 9)).foregroundStyle(.secondary)
+            HStack(spacing: 4) { Text("Less"); ForEach([0.05, 0.3, 0.55, 0.8, 1.0], id: \.self) { opacity in RoundedRectangle(cornerRadius: 2).fill(accent.opacity(opacity)).frame(width: 10, height: 10) }; Text("More"); Spacer(); Text("Real usage only · no historical estimates") }.font(.system(size: 9)).foregroundStyle(.secondary)
         }.card()
     }
     private var vocabulary: some View {
@@ -156,15 +166,15 @@ struct DashboardView: View {
             Text("Give names, technical terms, and unusual words a better chance. Vocabulary is supplied as a local transcription hint; it does not retrain the model.").foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 14) {
                 Text(editingID == nil ? "Add to your vocabulary" : "Edit vocabulary").font(.headline)
-                TextField("Preferred word or phrase — e.g. Kubernetes", text: $phrase).textFieldStyle(.roundedBorder)
-                TextField("Often heard as — optional exact correction", text: $heardAs).textFieldStyle(.roundedBorder)
+                TextField("Preferred word or phrase — e.g. Kubernetes", text: $phrase).textFieldStyle(.plain).padding(12).background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 10))
+                TextField("Often heard as — optional exact correction", text: $heardAs).textFieldStyle(.plain).padding(12).background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 10))
                 Text("An optional correction replaces matching words after transcription. Leave it blank to use only a recognition hint.").font(.caption).foregroundStyle(.secondary)
                 HStack {
                     Button(editingID == nil ? "Add word" : "Save changes") {
                         if let editingID { store.remove(editingID) }
                         store.add(phrase: phrase, heardAs: heardAs)
                         phrase = ""; heardAs = ""; editingID = nil
-                    }.buttonStyle(.borderedProminent).tint(green).foregroundStyle(.black).disabled(phrase.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }.buttonStyle(DashboardButtonStyle(primary: true)).disabled(phrase.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     if editingID != nil { Button("Cancel edit") { editingID = nil; phrase = ""; heardAs = "" } }
                     Spacer(); Text("\(store.data.vocabulary.count) entries").font(.caption).foregroundStyle(.secondary)
                 }
@@ -193,7 +203,11 @@ struct DashboardView: View {
                 Text(controller.mode == .pushToTalk ? "Hold Fn to speak. Release to transcribe and paste." : "Tap Fn to start. Tap Fn again to finish.").font(.callout)
                 Label("Fn + Space starts hands-free recording. Press Fn once to finish.", systemImage: "keyboard").font(.callout).foregroundStyle(.secondary)
                 Text("Fallback: Control–Option–Space follows your selected mode. Escape or × cancels; ✓ finishes. Recordings stop automatically after 10 minutes.").font(.caption).foregroundStyle(.secondary)
-                Text("If the Globe key opens emoji or changes input language, set its action to “Do Nothing” in macOS Keyboard settings. Other apps using Fn, including Wispr Flow, may conflict.").font(.caption).foregroundStyle(.secondary)
+                HStack(alignment: .top, spacing: 16) {
+                    Text("Set macOS’s “Press 🌐 key to” action to “Do Nothing” so finishing a recording does not open emoji. Other apps using Fn may still conflict.").font(.caption).foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                    Button("Keyboard settings") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Keyboard-Settings.extension")!) }
+                }
             }.card()
             VStack(alignment: .leading, spacing: 16) {
                 Text("Background & insertion").font(.headline)
@@ -213,7 +227,7 @@ struct DashboardView: View {
             UpdateSettingsView(updates: controller.updates).card()
             VStack(alignment: .leading, spacing: 12) {
                 Text("Permissions & engine").font(.headline)
-                Label(controller.accessibilityReady ? "Accessibility is enabled" : "Accessibility is required for automatic paste", systemImage: controller.accessibilityReady ? "checkmark.circle.fill" : "exclamationmark.circle").foregroundStyle(controller.accessibilityReady ? green : .orange)
+                Label(controller.accessibilityReady ? "Accessibility is enabled" : "Accessibility is required for automatic paste", systemImage: controller.accessibilityReady ? "checkmark.circle.fill" : "exclamationmark.circle").foregroundStyle(controller.accessibilityReady ? accent : .orange)
                 Label(controller.fnReady ? "Fn shortcuts connected" : "Fn shortcuts unavailable — use the fallback shortcut", systemImage: "keyboard").font(.callout)
                 Button("Open Accessibility settings") { controller.accessibility() }
                 if !controller.ready { Button("Download / repair speech model") { Task { await controller.prepareModel() } }.disabled(controller.busy) }
@@ -224,5 +238,50 @@ struct DashboardView: View {
 }
 
 private extension View {
-    func card() -> some View { self.padding(18).background(.white.opacity(0.035), in: RoundedRectangle(cornerRadius: 16)).overlay(RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.06))) }
+    func card() -> some View { self.padding(22).background(.white.opacity(0.035), in: RoundedRectangle(cornerRadius: 18)) }
+}
+
+private struct SidebarItem: View {
+    let name: String
+    let icon: String
+    let selected: Bool
+    let action: () -> Void
+    @FocusState private var focused: Bool
+    @State private var hovered = false
+    var body: some View {
+        Button { focused = true; action() } label: {
+            HStack(spacing: 12) {
+                Image(systemName: icon).font(.system(size: 15)).frame(width: 20)
+                Text(name).font(.system(size: 13, weight: selected ? .semibold : .medium))
+                Spacer()
+            }.padding(.horizontal, 14).frame(height: 44)
+                .foregroundStyle(selected ? Color.blue : Color.secondary)
+                .background(selected ? Color.blue.opacity(0.10) : Color.white.opacity(hovered ? 0.045 : 0), in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.blue.opacity(focused ? 1 : selected ? 0.45 : 0), lineWidth: focused ? 2 : 1))
+                .contentShape(RoundedRectangle(cornerRadius: 12))
+        }.buttonStyle(.plain).focused($focused).focusEffectDisabled()
+            .onHover { hovered = $0 }.accessibilityAddTraits(selected ? .isSelected : [])
+    }
+}
+
+private struct DashboardButtonStyle: ButtonStyle {
+    var primary = false
+    func makeBody(configuration: Configuration) -> some View {
+        DashboardButtonBody(configuration: configuration, primary: primary)
+    }
+    private struct DashboardButtonBody: View {
+        let configuration: ButtonStyle.Configuration
+        let primary: Bool
+        @Environment(\.isEnabled) private var enabled
+        @State private var hovered = false
+        var body: some View {
+            configuration.label.font(.system(size: 12, weight: .medium))
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .foregroundStyle(primary ? Color.white : configuration.role == .destructive ? Color.red : Color.primary)
+                .background(primary ? Color.blue : Color.white.opacity(hovered ? 0.10 : 0.055), in: RoundedRectangle(cornerRadius: 9))
+                .opacity(!enabled ? 0.35 : configuration.isPressed ? 0.65 : 1)
+                .contentShape(RoundedRectangle(cornerRadius: 9))
+                .onHover { hovered = $0 }
+        }
+    }
 }
