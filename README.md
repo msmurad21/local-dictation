@@ -22,6 +22,14 @@ Put the cursor in the destination field before recording. The floating control p
 
 The clipboard is temporarily populated, then restored after 900 ms if no other app changed it. Clipboard managers can retain the pasted text. “Paste in last app” explicitly sends the editable latest transcript to the last external app. “Paste sent” confirms event delivery, not that every third-party app accepted the text.
 
+## Smart cleanup
+
+After transcription, the app edits spelling, grammar and punctuation, removes filler and false starts, and formats spoken lists before pasting. Say “bullet points” or “numbered list” to request a list, or “new paragraph” to separate paragraphs. Output uses plain text bullets and numbers so it works across apps. Controls → Smart cleanup turns this step on or off; it is on by default.
+
+Cleanup uses Apple's on-device Foundation Models on macOS 26+ with Apple Intelligence enabled and its model ready. It needs no API key or cloud transcription service. Other Macs retain ordinary local dictation. If cleanup is unavailable, fails, or changes protected literal numbers, URLs or email addresses, the original transcript is used. AI edits are not guaranteed to preserve every nuance; the dashboard retains the original transcript for comparison and restoration. Neither version is saved to disk. Statistics count original spoken words.
+
+Vocabulary spellings also guide cleanup. Long transcripts are edited in small independent sections, so formatting across section boundaries may need adjustment.
+
 ## Dashboard and vocabulary
 
 Statistics show real completed dictations: total words, today's words, recording WPM, word-count and pace charts, time on mic, and a 26-week activity heat map. WPM is total words divided by recording minutes, including pauses. Counts begin with this version; old usage is not estimated. Empty/cancelled recordings do not count. A successfully transcribed recording counts even if paste fails.
@@ -37,6 +45,7 @@ Download the multilingual Base model once using Controls. Model and tokenizer fi
 ## Build
 
 ```sh
+# Use Xcode 26+ to include on-device smart cleanup.
 bash scripts/build-app.sh
 open "dist/Local Dictation.zip"
 ```
@@ -47,9 +56,10 @@ Extract the archive, move Local Dictation.app to Applications, and open it. Pack
 swift test -c release
 .build/release/LocalDictation --prepare-model
 .build/release/LocalDictation --transcribe /absolute/path/to/sample.wav
+.build/release/LocalDictation --polish-text /absolute/path/to/transcript.txt
 ```
 
-Automated tests cover text cleanup, silence detection, shortcuts, vocabulary, statistics and update restart policy. Physical keyboard behavior and signed upgrades also need testing on target Macs. The app is an original implementation; it contains no copied Wispr implementation. Semantic rewriting, streaming partial transcripts, login launch, and Wispr feature/quality parity are not implemented.
+Automated tests cover text cleanup, silence detection, shortcuts, vocabulary, statistics and update restart policy. Physical keyboard behavior and signed upgrades also need testing on target Macs. The app is an original implementation; it contains no copied Wispr implementation. Streaming partial transcripts, login launch, and Wispr feature/quality parity are not implemented.
 
 ## 0.2.1 refinements
 

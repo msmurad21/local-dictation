@@ -90,7 +90,14 @@ struct DashboardView: View {
             heatmap
             VStack(alignment: .leading, spacing: 12) {
                 HStack { Text("Latest transcript").font(.headline); Spacer(); Button("Copy") { controller.copy() }.disabled(controller.transcript.isEmpty); Button("Paste in last app") { Task { await controller.pasteLast() } }.disabled(controller.transcript.isEmpty || controller.busy || controller.recording) }
-                TextEditor(text: $controller.transcript).font(.body).scrollContentBackground(.hidden).frame(height: 90)
+                TextEditor(text: $controller.transcript).font(.body).scrollContentBackground(.hidden).frame(height: 130).disabled(controller.busy)
+                if !controller.cleanupNote.isEmpty { Text(controller.cleanupNote).font(.caption).foregroundStyle(.secondary) }
+                if !controller.rawTranscript.isEmpty {
+                    DisclosureGroup("Original transcript") {
+                        Text(controller.rawTranscript).textSelection(.enabled).font(.callout).frame(maxWidth: .infinity, alignment: .leading)
+                        Button("Use original") { controller.transcript = controller.rawTranscript; controller.cleanupNote = "Original restored" }.disabled(controller.busy)
+                    }
+                }
                 Text("Transcript stays in memory. Only word counts, durations, and dates are saved.").font(.caption2).foregroundStyle(.secondary)
             }.card()
         }
@@ -178,6 +185,13 @@ struct DashboardView: View {
                 Text("Drag the small control to any screen edge. Right-click it to choose an edge or open the dashboard. Closing this window keeps dictation running in the menu bar.").font(.caption).foregroundStyle(.secondary)
                 Toggle("Automatically paste into the focused app", isOn: $controller.autoInsert)
                 Text("If you change apps or windows while processing, the transcript stays here. Clipboard contents are restored after pasting when no other app has changed them.").font(.caption).foregroundStyle(.secondary)
+            }.card()
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Smart cleanup").font(.headline)
+                Toggle("Clean up before pasting", isOn: $controller.cleanupEnabled).disabled(controller.busy)
+                Text("Fix spelling and grammar, remove filler words, and format spoken bullet points or numbered lists while preserving your meaning.").font(.callout)
+                Text(controller.cleanupAvailability).font(.caption).foregroundStyle(.secondary)
+                Text("Runs entirely on this Mac using Apple Intelligence. If cleanup is unavailable or fails, the original transcript is used. You can compare and restore the original in Overview.").font(.caption).foregroundStyle(.secondary)
             }.card()
             UpdateSettingsView(updates: controller.updates).card()
             VStack(alignment: .leading, spacing: 12) {

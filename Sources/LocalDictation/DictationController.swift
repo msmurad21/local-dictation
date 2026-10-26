@@ -5,6 +5,14 @@ import DictationCore
 @MainActor final class DictationController: ObservableObject {
     @Published var status = "Loading local model…"
     @Published var transcript = "" { didSet { hasUnpastedText = !transcript.isEmpty } }
+    @Published var rawTranscript = ""
+    @Published var cleanupNote = ""
+    @Published var cleanupAvailability = TranscriptProcessor.availability
+    @Published var cleanupEnabled = UserDefaults.standard.object(forKey: "cleanupEnabled") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(cleanupEnabled, forKey: "cleanupEnabled") }
+    }
+    private let processor = TranscriptProcessor()
+    private var polishTask: Task<PolishedTranscript, Error>?
     private(set) var hasUnpastedText = false
     let updates = AppUpdates()
     @Published var error: String?
@@ -72,6 +80,7 @@ import DictationCore
             Task { @MainActor in
                 guard let self else { return }
                 self.accessibilityReady = AXIsProcessTrusted()
+                self.cleanupAvailability = TranscriptProcessor.availability
                 self.hotKey.refreshFn(); self.fnReady = self.hotKey.fnAvailable
             }
         }
@@ -160,13 +169,25 @@ import DictationCore
         busy = true; status = "Transcribing locally…"
         let job = generation
         let vocabulary = store.data.vocabulary
-        defer { busy = false; submitting = false; cleanupAudio(); target = nil; hotKey.canCancel = false }
+        defer { busy = false; submitting = false; polishTask = nil; cleanupAudio(); target = nil; hotKey.canCancel = false }
         do {
             let raw = try await engine.transcribe(url, vocabulary: vocabulary.map(\.phrase))
             guard job == generation else { status = "Cancelled"; return }
-            transcript = Vocabulary.apply(vocabulary, to: Transcript.clean(raw))
-            guard !transcript.isEmpty else { status = "No speech detected"; return }
-            store.record(words: UsageStats.words(in: transcript), duration: duration)
+            let original = Vocabulary.apply(vocabulary, to: Transcript.clean(raw))
+            guard !original.isEmpty else { status = "No speech detected"; return }
+            var result = PolishedTranscript(text: original, note: "Cleanup off · original transcript")
+            if cleanupEnabled {
+                status = "Cleaning up locally…"
+                let task = Task { try await processor.process(original, vocabulary: vocabulary.map(\.phrase)) }
+                polishTask = task
+                result = try await task.value
+            }
+            guard job == generation else { status = "Cancelled"; return }
+            rawTranscript = original
+            cleanupNote = result.note
+            transcript = Vocabulary.apply(vocabulary, to: result.text)
+            // Speaking pace measures what was spoken, not added list markers or edited wording.
+            store.record(words: UsageStats.words(in: original), duration: duration)
             if autoInsert, let target {
                 submitting = true; hotKey.canCancel = false
                 status = try await target.insert(transcript)
@@ -179,7 +200,7 @@ import DictationCore
     }
     func cancel() {
         guard !submitting else { return }
-        generation += 1; gate.release(); hotKey.canCancel = false
+        generation += 1; gate.release(); polishTask?.cancel(); hotKey.canCancel = false
         if recording || starting {
             let wasRecording = recording
             recorder?.stop(); recorder = nil; meter?.invalidate(); meter = nil

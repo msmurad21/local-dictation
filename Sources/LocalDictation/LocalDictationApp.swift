@@ -4,11 +4,16 @@ import DictationCore
 @main struct LocalDictationMain {
     @MainActor static func main() {
         let args = CommandLine.arguments
-        if args.contains("--prepare-model") || args.contains("--transcribe") {
+        if args.contains("--prepare-model") || args.contains("--transcribe") || args.contains("--polish-text") {
             Task {
             let engine = SpeechEngine()
             do {
-                if args.contains("--prepare-model") {
+                if let index = args.firstIndex(of: "--polish-text"), index + 1 < args.count {
+                    let text = try String(contentsOfFile: args[index + 1], encoding: .utf8)
+                    let result = try await TranscriptProcessor().process(text)
+                    FileHandle.standardError.write(Data((result.note + "\n").utf8))
+                    print(result.text)
+                } else if args.contains("--prepare-model") {
                     try await engine.prepare { message in FileHandle.standardError.write(Data((message + "\n").utf8)) }
                     print("Model ready")
                 } else if let index = args.firstIndex(of: "--transcribe"), index + 1 < args.count {
