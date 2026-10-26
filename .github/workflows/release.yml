@@ -21,7 +21,6 @@ jobs:
     # Set this repository variable only after the public feed and keys are configured.
     if: vars.RELEASES_ENABLED == 'true'
     env:
-      BUILD_PATH: ${{ runner.temp }}/local-dictation-build
       APPCAST_URL: https://github.com/${{ github.repository }}/releases/latest/download/appcast.xml
       SPARKLE_PUBLIC_KEY: ${{ vars.SPARKLE_PUBLIC_KEY }}
       CODE_SIGN_IDENTITY: ${{ vars.CODE_SIGN_IDENTITY }}
@@ -31,6 +30,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
+      - name: Set build directory
+        run: echo "BUILD_PATH=$RUNNER_TEMP/local-dictation-build" >> "$GITHUB_ENV"
       - name: Run tests
         run: swift test --scratch-path "$BUILD_PATH" -c release
       - name: Configure release credentials
