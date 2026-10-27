@@ -14,6 +14,14 @@ Open-source macOS 14+ dictation with local Whisper Base inference. Optimized and
 
 Fn handling requires Accessibility permission and may conflict with macOS's Globe-key action or another dictation app. Set the Globe-key action to “Do Nothing” in macOS Keyboard settings if necessary. The app does not change system keyboard settings. Quit or reconfigure other apps using Fn. If macOS requests Input Monitoring, grant it to use Fn, or use the fallback shortcut.
 
+## Custom shortcuts and spoken edits
+
+Controls → Keyboard shortcuts lets you choose independent key/modifier combinations for push-to-talk and hands-free dictation. Hold push-to-talk to record and release to finish; press hands-free to start or finish. The defaults are Control–Option–Space and Control–Option–R. Fn / Fn+Space can remain enabled alongside them, or be disabled. Save applies and persists changes; registration conflicts restore the previous shortcuts. System-reserved shortcuts may need a different combination.
+
+With Smart cleanup enabled, “scratch the last line/sentence,” “delete the last word,” “delete the last paragraph,” “scratch that,” and “start over” edit the current recording before paste. A “line” means the preceding sentence because dictation has no visual line wrapping yet. Apple Intelligence also interprets explicit corrections such as “actually make that Tuesday” or “replace Monday with Tuesday” as anchored replacements of earlier wording. Say formatting requests naturally to change the layout. Quoted or reported commands are preserved; ambiguous or unsupported instructions can remain literal. This does not edit text already pasted into another app or perform external actions. The original transcript and recent audio remain available for recovery.
+
+The active recording panel is larger, with wider, taller bars and a speech-oriented microphone level scale. The idle pill keeps its compact size.
+
 ## Automatic paste
 
 Enable Accessibility for Local Dictation in System Settings → Privacy & Security. After a development update, macOS may require removing and re-adding the app or toggling its permission, then restarting it.

@@ -28,7 +28,7 @@ final class RecordingPanel: NSPanel {
         panel.contentView = NSHostingView(rootView: FloatingControl(controller: controller, drag: { [weak self] ended in self?.drag(ended: ended) }, pin: { [weak self] edge in self?.pin(edge) }))
         controller.$recording.combineLatest(controller.$busy, controller.$starting).sink { [weak self] recording, busy, starting in
             guard let self else { return }
-            self.panel.setContentSize(NSSize(width: recording || busy || starting ? 230 : 48, height: recording || busy || starting ? 54 : 30))
+            self.panel.setContentSize(NSSize(width: recording || busy || starting ? 320 : 48, height: recording || busy || starting ? 90 : 30))
             if !self.dragging { self.position() }
         }.store(in: &subscriptions)
         controller.$showOverlay.sink { [weak self] visible in
@@ -91,16 +91,19 @@ struct FloatingControl: View {
     var body: some View {
         HStack(spacing: 8) {
             if active {
-                Button { controller.cancel() } label: { Image(systemName: "xmark").frame(width: 24, height: 30) }.disabled(controller.submitting).help("Cancel recording (Escape)")
+                Button { controller.cancel() } label: { Image(systemName: "xmark").frame(width: 30, height: 44) }.disabled(controller.submitting).help("Cancel recording (Escape)")
                 if controller.recording {
-                    HStack(spacing: 2) {
-                        ForEach(Array(controller.levels.enumerated()), id: \.offset) { _, level in
-                            Capsule().fill(Color.mint).frame(width: 2, height: max(3, CGFloat(level) * 22))
-                        }
-                    }.frame(width: 110, height: 28)
-                        .overlay(alignment: .bottom) { Text(String(format: "%d:%02d", Int(controller.elapsed) / 60, Int(controller.elapsed) % 60)).font(.system(size: 8, design: .monospaced)).offset(y: 9).foregroundStyle(.white.opacity(0.6)) }
-                } else { ProgressView().controlSize(.small).frame(width: 110, height: 28) }
-                Button { controller.finish() } label: { Image(systemName: "checkmark").foregroundStyle(.mint).frame(width: 24, height: 30) }.disabled(!controller.recording).help("Finish and paste")
+                    VStack(spacing: 3) {
+                        HStack(spacing: 3) {
+                            ForEach(Array(controller.levels.enumerated()), id: \.offset) { _, level in
+                                Capsule().fill(Color.mint).frame(width: 4, height: max(4, CGFloat(level) * 42))
+                            }
+                        }.frame(width: 194, height: 42)
+                        Text(String(format: "%d:%02d", Int(controller.elapsed) / 60, Int(controller.elapsed) % 60))
+                            .font(.system(size: 10, design: .monospaced)).foregroundStyle(.white.opacity(0.6)).frame(height: 12)
+                    }
+                } else { ProgressView().controlSize(.small).frame(width: 194, height: 46) }
+                Button { controller.finish() } label: { Image(systemName: "checkmark").foregroundStyle(.mint).frame(width: 30, height: 44) }.disabled(!controller.recording).help("Finish and paste")
             } else {
                 Button { controller.toggleRecording() } label: {
                     Capsule().fill(.white.opacity(hovering ? 0.85 : 0.55))

@@ -31,6 +31,7 @@ import DictationCore
     @Published var elapsed: Double = 0
     @Published var accessibilityReady = AXIsProcessTrusted()
     @Published var fnReady = false
+    @Published var fnShortcutsEnabled = UserDefaults.standard.object(forKey: "fnEnabled") as? Bool ?? true
     @Published var autoInsert = UserDefaults.standard.object(forKey: "autoInsert") as? Bool ?? true {
         didSet { UserDefaults.standard.set(autoInsert, forKey: "autoInsert") }
     }
@@ -117,6 +118,13 @@ import DictationCore
             }
         }
     }
+    func saveShortcuts(hold: UInt32, holdMods: UInt32, toggle: UInt32, toggleMods: UInt32, useFn: Bool) -> Bool {
+        guard !recording && !busy && !starting else { return false }
+        do {
+            try hotKey.configure(hold: hold, holdMods: holdMods, toggle: toggle, toggleMods: toggleMods, useFn: useFn)
+            fnReady = hotKey.fnAvailable; fnShortcutsEnabled = useFn; error = nil; status = "Shortcuts saved"; return true
+        } catch { self.error = error.localizedDescription; return false }
+    }
     func prepareModel() async {
         guard !busy && !recording else { return }
         busy = true; error = nil
@@ -180,7 +188,7 @@ import DictationCore
                 Task { @MainActor in
                     guard let self, let recorder = self.recorder else { return }
                     recorder.updateMeters()
-                    let value = max(0.03, min(1, pow(10, recorder.averagePower(forChannel: 0) / 35)))
+                    let value = max(0.03, min(1, pow(max(0, min(1, (recorder.averagePower(forChannel: 0) + 55) / 45)), 0.7)))
                     self.levels.removeFirst(); self.levels.append(value)
                     self.elapsed = recorder.currentTime
                     if self.elapsed >= 600 || !recorder.isRecording { await self.stop() }
@@ -265,6 +273,10 @@ import DictationCore
             guard job == generation else { throw CancellationError() }
             cleanupNote = result.note
             transcript = Vocabulary.apply(vocabulary, to: result.text)
+            if transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                item.state = "completed"; try archive?.save(item)
+                status = "Dictation cleared by spoken command"; return
+            }
             let shouldCount = !item.counted
             item.state = "completed"; item.counted = true
             try archive?.save(item)

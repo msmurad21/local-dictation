@@ -197,13 +197,15 @@ struct DashboardView: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Recording mode").font(.headline)
+                ShortcutSettings(controller: controller)
+                Divider().opacity(0.3)
+                Text("Fn recording mode").font(.headline)
                 Picker("Fn key behavior", selection: $controller.mode) {
                     ForEach(RecordingMode.allCases, id: \.self) { Text($0.title).tag($0) }
                 }.pickerStyle(.segmented).disabled(controller.recording || controller.starting)
                 Text(controller.mode == .pushToTalk ? "Hold Fn to speak. Release to transcribe and paste." : "Tap Fn to start. Tap Fn again to finish.").font(.callout)
                 Label("Fn + Space starts hands-free recording. Press Fn once to finish.", systemImage: "keyboard").font(.callout).foregroundStyle(.secondary)
-                Text("Fallback: Control–Option–Space follows your selected mode. Escape or × cancels; ✓ finishes. Recordings stop automatically after 10 minutes.").font(.caption).foregroundStyle(.secondary)
+                Text("Your custom push-to-talk shortcut records while held. Your hands-free shortcut starts or finishes recording. Escape or × cancels; ✓ finishes. Recordings stop automatically after 10 minutes.").font(.caption).foregroundStyle(.secondary)
                 HStack(alignment: .top, spacing: 16) {
                     Text("Set macOS’s “Press 🌐 key to” action to “Do Nothing” so finishing a recording does not open emoji. Other apps using Fn may still conflict.").font(.caption).foregroundStyle(.secondary)
                     Spacer(minLength: 0)
@@ -222,6 +224,7 @@ struct DashboardView: View {
                 Text("Smart cleanup").font(.headline)
                 Toggle("Clean up before pasting", isOn: $controller.cleanupEnabled).disabled(controller.busy)
                 Text("Fix spelling and grammar, remove filler words, and infer lists, ordered steps, headings and paragraphs while preserving your meaning.").font(.callout)
+                Text("Spoken edits apply before paste: ‘scratch the last line’, ‘delete the last word’, ‘start over’, or ‘actually make that Tuesday’. Formatting requests are also understood. Quoted commands stay as text. Review the original if an instruction is ambiguous.").font(.caption).foregroundStyle(.secondary)
                 Text(controller.cleanupAvailability).font(.caption).foregroundStyle(.secondary)
                 Text("Runs entirely on this Mac using Apple Intelligence. If cleanup is unavailable or fails, the original transcript is used. You can compare and restore the original in Overview.").font(.caption).foregroundStyle(.secondary)
             }.card()
@@ -229,7 +232,7 @@ struct DashboardView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Permissions & engine").font(.headline)
                 Label(controller.accessibilityReady ? "Accessibility is enabled" : "Accessibility is required for automatic paste", systemImage: controller.accessibilityReady ? "checkmark.circle.fill" : "exclamationmark.circle").foregroundStyle(controller.accessibilityReady ? accent : .orange)
-                Label(controller.fnReady ? "Fn shortcuts connected" : "Fn shortcuts unavailable — use the fallback shortcut", systemImage: "keyboard").font(.callout)
+                Label(!controller.fnShortcutsEnabled ? "Fn shortcuts disabled · custom shortcuts are available" : controller.fnReady ? "Fn shortcuts connected" : "Fn shortcuts unavailable — use a custom shortcut", systemImage: "keyboard").font(.callout)
                 Button("Open Accessibility settings") { controller.accessibility() }
                 if !controller.ready { Button("Download / repair speech model") { Task { await controller.prepareModel() } }.disabled(controller.busy) }
                 Text("Multilingual Whisper Base · fully local inference").font(.caption).foregroundStyle(.secondary)

@@ -69,6 +69,7 @@ public enum Polishing {
         }
         let source = words(original), destination = Set(words(cleaned))
         if source.count >= 6 {
+            guard words(cleaned).count <= max(source.count + 4, Int(Double(source.count) * 1.4)) else { return false }
             let kept = source.filter { destination.contains($0) }.count
             guard Double(kept) / Double(source.count) >= 0.85 else { return false }
             let ending = Array(source.suffix(6))
