@@ -11,6 +11,9 @@ import DictationCore
     @Published var cleanupEnabled = UserDefaults.standard.object(forKey: "cleanupEnabled") as? Bool ?? true {
         didSet { UserDefaults.standard.set(cleanupEnabled, forKey: "cleanupEnabled") }
     }
+    @Published var contextEnabled = UserDefaults.standard.object(forKey: "contextEnabled") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(contextEnabled, forKey: "contextEnabled") }
+    }
     @Published var savedRecordings: [SavedRecording] = []
     private var archive: RecordingArchive?
     private var activeRecording: SavedRecording?
@@ -171,7 +174,9 @@ import DictationCore
         do {
             guard let archive else { throw AppError.message("Local recording recovery is unavailable. Restart the app or check available disk space.") }
             try archive.prune()
-            let item = try archive.create()
+            var item = try archive.create()
+            item.context = contextEnabled ? selectedTarget?.context : nil
+            try archive.save(item)
             activeRecording = item
             let url = archive.audioURL(item)
             audioURL = url
@@ -266,7 +271,7 @@ import DictationCore
             var result = PolishedTranscript(text: original, note: "Cleanup off · original transcript")
             if cleanupEnabled {
                 status = "Cleaning up locally…"
-                let task = Task { try await processor.process(original, vocabulary: vocabulary.map(\.phrase)) }
+                let task = Task { try await processor.process(original, vocabulary: vocabulary.map(\.phrase), context: contextEnabled ? (saved.context ?? .general) : .general) }
                 polishTask = task
                 result = try await task.value
             }

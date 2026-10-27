@@ -6,6 +6,7 @@ public struct SavedRecording: Codable, Identifiable, Equatable, Sendable {
     public var duration: Double = 0
     public var state = "pending"
     public var counted = false
+    public var context: DictationContext?
 }
 
 /// Audio and recovery metadata only. Transcripts are never written here.

@@ -30,7 +30,7 @@ actor TranscriptProcessor {
         return "AI cleanup requires macOS 26+ and a build made with Xcode 26+. Original dictation still works."
     }
 
-    func process(_ input: String, vocabulary: [String] = []) async throws -> PolishedTranscript {
+    func process(_ input: String, vocabulary: [String] = [], context: DictationContext = .general) async throws -> PolishedTranscript {
         let formatting = VoiceEdits.formatting(VoiceEdits.apply(input))
         var original = formatting.text
         guard !original.isEmpty else { return PolishedTranscript(text: "", note: "") }
@@ -57,6 +57,7 @@ actor TranscriptProcessor {
                 }
                 if let style = formatting.style, style == "BULLETS" || style == "STEPS" {
                     let listEditor = LanguageModelSession(instructions: """
+                    \(context.instructions)
                     Convert the dictated passage into a list. Return ONLY JSON with string fields introduction and ending, and an array of strings items. Preserve all content and qualifiers. Do not add facts. Do not include formatting commands. Each item is one list entry without a marker. Preserve shared context in introduction. Use an empty string when there is no introduction or ending.
                     Example input: We need apples bananas and milk.
                     Example output: {"introduction":"We need:","items":["Apples","Bananas","Milk"],"ending":""}
@@ -104,7 +105,7 @@ actor TranscriptProcessor {
                     for _ in 0..<2 {
                         let session = LanguageModelSession(
                             model: SystemLanguageModel(guardrails: .permissiveContentTransformations),
-                            instructions: Polishing.instructions + "\n" + format + "\n" + preservation)
+                            instructions: Polishing.instructions + "\n" + context.instructions + "\n" + format + "\n" + preservation)
                         let response = try await session.respond(to: "Preferred spellings (only if spoken): \(hints)\n\nTranscript to edit:\n\(chunk)\n\n\(format)\n\(preservation)\n\(correction)",
                             options: GenerationOptions(temperature: 0, maximumResponseTokens: 1600))
                         try Task.checkCancellation()

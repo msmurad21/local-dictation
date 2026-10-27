@@ -51,6 +51,11 @@ public enum Polishing {
         guard !cleaned.isEmpty, !cleaned.contains("```"),
               cleaned.count >= max(1, original.count < 80 ? original.count / 3 : original.count * 7 / 10),
               cleaned.count <= max(100, original.count * 2) else { return false }
+        // Model commentary is not dictated content, even for very short passages.
+        for label in ["heading:", "transcript:", "output:", "edited transcript:", "corrected transcript:"] {
+            if cleaned.lowercased().components(separatedBy: "\n").contains(where: { $0.trimmingCharacters(in: .whitespaces).hasPrefix(label) }),
+               !original.lowercased().contains(label) { return false }
+        }
         func literals(_ text: String) -> [String] {
             let withoutListNumbers = text.replacingOccurrences(of: "(?m)^\\s*\\d+[.)]\\s+", with: "", options: .regularExpression)
             let pattern = "https?://[^\\s]+|[\\w.+-]+@[\\w.-]+\\.[A-Za-z]{2,}|\\d+(?:[.,:/-]\\d+)*"
