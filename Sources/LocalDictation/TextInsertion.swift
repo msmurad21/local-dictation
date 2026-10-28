@@ -8,6 +8,7 @@ struct InsertionTarget {
     let window: AXUIElement?
     let appName: String
     let context: DictationContext
+    let bundleID: String
 
     static func attribute(_ object: AXUIElement, _ name: String) -> AXUIElement? {
         var value: CFTypeRef?
@@ -22,7 +23,7 @@ struct InsertionTarget {
         return Self(processID: app.processIdentifier,
                     element: attribute(ax, kAXFocusedUIElementAttribute),
                     window: attribute(ax, kAXFocusedWindowAttribute), appName: app.localizedName ?? "app",
-                    context: .classify(bundleID: app.bundleIdentifier))
+                    context: .classify(bundleID: app.bundleIdentifier), bundleID: app.bundleIdentifier ?? "")
     }
 
     @MainActor func insert(_ text: String) async throws -> String {

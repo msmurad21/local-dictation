@@ -60,7 +60,17 @@ import DictationCore
     private var retentionTimer: Timer?
     private var generation = 0
     private var workspaceObserver: NSObjectProtocol?
-    private(set) var lastExternalApp: NSRunningApplication?
+    @Published private(set) var lastExternalApp: NSRunningApplication?
+    @Published var capturedContext = "No recording yet"
+    var appVocabulary: [String: String] {
+        get { UserDefaults.standard.dictionary(forKey: "appVocabulary") as? [String: String] ?? [:] }
+        set { UserDefaults.standard.set(newValue, forKey: "appVocabulary") }
+    }
+    func saveAppVocabulary(bundleID: String, terms: String) {
+        var profiles = appVocabulary
+        profiles[bundleID] = AppDictationContext.parseTerms(terms).joined(separator: ", ")
+        appVocabulary = profiles
+    }
     var showDashboard: (() -> Void)?
 
     init() {
@@ -176,6 +186,10 @@ import DictationCore
             try archive.prune()
             var item = try archive.create()
             item.context = contextEnabled ? selectedTarget?.context : nil
+            if contextEnabled, let selectedTarget {
+                item.appContext = AppDictationContext(appName: selectedTarget.appName, bundleID: selectedTarget.bundleID, customTerms: appVocabulary[selectedTarget.bundleID] ?? "")
+            }
+            capturedContext = item.appContext.map { "\($0.appName) · \($0.bundleID)" } ?? "App context off or target unavailable"
             try archive.save(item)
             activeRecording = item
             let url = archive.audioURL(item)
@@ -239,6 +253,9 @@ import DictationCore
         var item = saved
         let job = generation
         let vocabulary = store.data.vocabulary
+        let appContext = contextEnabled ? saved.appContext : nil
+        let hints = vocabulary.map(\.phrase) + (appContext?.terms ?? [])
+        capturedContext = appContext.map { "\($0.appName) · \($0.bundleID)" } ?? "General context"
         defer {
             busy = false; submitting = false; polishTask = nil; speechTask = nil; hotKey.canCancel = false
             savedRecordings = archive?.recordings() ?? []
@@ -250,7 +267,7 @@ import DictationCore
                 guard job == generation else { throw CancellationError() }
                 status = attempt == 1 ? "Transcribing locally…" : "Retrying local transcription (\(attempt)/3)…"
                 do {
-                    let task = Task { try await engine.transcribe(url, vocabulary: vocabulary.map(\.phrase)) }
+                    let task = Task { try await engine.transcribe(url, vocabulary: hints) }
                     speechTask = task
                     raw = try await task.value
                     break
@@ -271,7 +288,7 @@ import DictationCore
             var result = PolishedTranscript(text: original, note: "Cleanup off · original transcript")
             if cleanupEnabled {
                 status = "Cleaning up locally…"
-                let task = Task { try await processor.process(original, vocabulary: vocabulary.map(\.phrase), context: contextEnabled ? (saved.context ?? .general) : .general) }
+                let task = Task { try await processor.process(original, vocabulary: hints, context: contextEnabled ? (saved.context ?? .general) : .general, appContext: appContext) }
                 polishTask = task
                 result = try await task.value
             }

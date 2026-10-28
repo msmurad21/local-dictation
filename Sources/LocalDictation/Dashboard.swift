@@ -223,8 +223,9 @@ struct DashboardView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Smart cleanup").font(.headline)
                 Toggle("Clean up before pasting", isOn: $controller.cleanupEnabled).disabled(controller.busy)
-                Toggle("Use target app context", isOn: $controller.contextEnabled).disabled(controller.busy || controller.recording || !controller.cleanupEnabled)
-                Text("Uses the app category at recording start to help distinguish technical words from everyday language. Runs locally; does not read screen or document content. Requires smart cleanup.").font(.caption).foregroundStyle(.secondary)
+                Toggle("Use target app context", isOn: $controller.contextEnabled).disabled(controller.busy || controller.recording)
+                Text("Uses the target app and its vocabulary in local speech recognition and smart cleanup. No screen or document content is read.").font(.caption).foregroundStyle(.secondary)
+                AppContextSettings(controller: controller)
                 Text("Fix spelling and grammar, remove filler words, and infer lists, ordered steps, headings and paragraphs while preserving your meaning.").font(.callout)
                 Text("Spoken edits apply before paste: ‘scratch the last line’, ‘delete the last word’, ‘start over’, or ‘actually make that Tuesday’. Formatting requests are also understood. Quoted commands stay as text. Review the original if an instruction is ambiguous.").font(.caption).foregroundStyle(.secondary)
                 Text(controller.cleanupAvailability).font(.caption).foregroundStyle(.secondary)

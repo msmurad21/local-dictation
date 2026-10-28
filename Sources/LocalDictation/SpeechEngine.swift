@@ -60,7 +60,7 @@ actor SpeechEngine {
         try await load()
         guard let pipe else { throw AppError.message("Speech model is not loaded.") }
         let hints = vocabulary.filter { !$0.isEmpty }.prefix(80).joined(separator: ", ")
-        let tokens = hints.isEmpty ? nil : pipe.tokenizer.map { Array($0.encode(text: "Vocabulary: " + hints).suffix(200)) }
+        let tokens = hints.isEmpty ? nil : pipe.tokenizer.map { Array($0.encode(text: "Vocabulary: " + hints).prefix(200)) }
         let results = try await pipe.transcribe(audioArray: samples, decodeOptions: DecodingOptions(task: .transcribe, detectLanguage: true, skipSpecialTokens: true, withoutTimestamps: false, windowClipTime: 0.1, promptTokens: tokens, suppressBlank: true, concurrentWorkerCount: 1, chunkingStrategy: .vad))
         let text = Transcript.clean(results.map(\.text).joined(separator: " "))
         guard !text.isEmpty else { throw AppError.message("Audio was recorded but no transcript was returned. The recording is available to retry.") }
