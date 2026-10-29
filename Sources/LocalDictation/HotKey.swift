@@ -6,9 +6,9 @@ import DictationCore
     private var reference: EventHotKeyRef?
     private var toggleReference: EventHotKeyRef?
     private var customRouter = ShortcutRouter()
-    private var holdCode = UInt32(UserDefaults.standard.object(forKey: "holdCode") as? Int ?? 49)
+    private var holdCode = UInt32(UserDefaults.standard.object(forKey: "holdCode") as? Int ?? Int(UInt32.max))
     private var holdModifiers = UInt32(UserDefaults.standard.object(forKey: "holdModifiers") as? Int ?? 6144)
-    private var toggleCode = UInt32(UserDefaults.standard.object(forKey: "toggleCode") as? Int ?? 15)
+    private var toggleCode = UInt32(UserDefaults.standard.object(forKey: "toggleCode") as? Int ?? Int(UInt32.max))
     private var toggleModifiers = UInt32(UserDefaults.standard.object(forKey: "toggleModifiers") as? Int ?? 6144)
     var fnEnabled = UserDefaults.standard.object(forKey: "fnEnabled") as? Bool ?? true
     private var handler: EventHandlerRef?
@@ -19,6 +19,7 @@ import DictationCore
     private var router = ShortcutRouter()
     var mode: RecordingMode = .pushToTalk
     var canCancel = false
+    var suspended = false
     var isHandsFree: (() -> Bool)?
     var onAction: ((ShortcutAction) -> Void)?
     var onCancel: (() -> Void)?
@@ -31,6 +32,7 @@ import DictationCore
             guard let event, let context else { return OSStatus(eventNotHandledErr) }
             MainActor.assumeIsolated {
                 let instance = Unmanaged<HotKey>.fromOpaque(context).takeUnretainedValue()
+                guard !instance.suspended else { return }
                 var identity = EventHotKeyID()
                 guard GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil, MemoryLayout<EventHotKeyID>.size, nil, &identity) == noErr else { return }
                 let pressed = GetEventKind(event) == UInt32(kEventHotKeyPressed)
@@ -48,17 +50,30 @@ import DictationCore
         try installCustomKeys()
         refreshFn()
     }
+    func setCapture(_ active: Bool) throws {
+        guard active != suspended else { return }
+        suspended = active; reset(); customRouter.reset()
+        if active {
+            if let reference { UnregisterEventHotKey(reference) }; reference = nil
+            if let toggleReference { UnregisterEventHotKey(toggleReference) }; toggleReference = nil
+        } else { try installCustomKeys() }
+    }
     private func installCustomKeys() throws {
+        guard !suspended else { return }
+        if holdCode != UInt32.max {
         guard RegisterEventHotKey(holdCode, holdModifiers, EventHotKeyID(signature: 0x4C444943, id: 1), GetApplicationEventTarget(), 0, &reference) == noErr else {
             throw AppError.message("That push-to-talk shortcut is already in use. Choose another combination.")
         }
+        }
+        if toggleCode != UInt32.max {
         guard RegisterEventHotKey(toggleCode, toggleModifiers, EventHotKeyID(signature: 0x4C444943, id: 2), GetApplicationEventTarget(), 0, &toggleReference) == noErr else {
             if let reference { UnregisterEventHotKey(reference) }; reference = nil
             throw AppError.message("That hands-free shortcut is already in use. Choose another combination.")
         }
+        }
     }
     func configure(hold: UInt32, holdMods: UInt32, toggle: UInt32, toggleMods: UInt32, useFn: Bool) throws {
-        guard hold != toggle || holdMods != toggleMods else { throw AppError.message("Choose different shortcuts for push-to-talk and hands-free.") }
+        guard hold == UInt32.max || toggle == UInt32.max || hold != toggle || holdMods != toggleMods else { throw AppError.message("Choose different shortcuts for push-to-talk and hands-free.") }
         let old = (holdCode, holdModifiers, toggleCode, toggleModifiers)
         if let reference { UnregisterEventHotKey(reference) }; reference = nil
         if let toggleReference { UnregisterEventHotKey(toggleReference) }; toggleReference = nil
@@ -97,6 +112,7 @@ import DictationCore
         }
     }
     private func handle(_ type: CGEventType, _ event: CGEvent) -> Bool {
+        guard !suspended else { return false }
         let key = event.getIntegerValueField(.keyboardEventKeycode)
         if fnEnabled && type == .flagsChanged && key == 63 {
             let down = event.flags.contains(.maskSecondaryFn)

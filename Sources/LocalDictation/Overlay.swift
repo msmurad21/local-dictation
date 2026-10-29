@@ -125,7 +125,6 @@ struct FloatingControl: View {
         .simultaneousGesture(DragGesture(minimumDistance: 6).onChanged { _ in drag(false) }.onEnded { _ in drag(true) })
         .contextMenu {
             Button("Dashboard") { controller.showDashboard?() }
-            Button(controller.mode == .pushToTalk ? "Switch to toggle mode" : "Switch to push to talk") { controller.mode = controller.mode == .pushToTalk ? .toggle : .pushToTalk }
             ForEach(["left", "right", "top", "bottom"], id: \.self) { edge in Button("Pin to \(edge)") { pin(edge) } }
         }
         .padding(7)

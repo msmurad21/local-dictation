@@ -17,11 +17,18 @@ struct InsertionTarget {
         return (value as! AXUIElement)
     }
     static func capture() -> Self? {
-        guard let app = NSWorkspace.shared.frontmostApplication,
-              app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return nil }
+        // Resolve the app owning the focused accessibility field without reading its value.
+        let system = AXUIElementCreateSystemWide()
+        let focusedApp = attribute(system, kAXFocusedApplicationAttribute)
+        let field = focusedApp.flatMap { attribute($0, kAXFocusedUIElementAttribute) }
+        var pid: pid_t = 0
+        if let field { AXUIElementGetPid(field, &pid) }
+        if pid == 0, let focusedApp { AXUIElementGetPid(focusedApp, &pid) }
+        let app = pid > 0 ? NSRunningApplication(processIdentifier: pid) : NSWorkspace.shared.frontmostApplication
+        guard let app, app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return nil }
         let ax = AXUIElementCreateApplication(app.processIdentifier)
         return Self(processID: app.processIdentifier,
-                    element: attribute(ax, kAXFocusedUIElementAttribute),
+                    element: field ?? attribute(ax, kAXFocusedUIElementAttribute),
                     window: attribute(ax, kAXFocusedWindowAttribute), appName: app.localizedName ?? "app",
                     context: .classify(bundleID: app.bundleIdentifier), bundleID: app.bundleIdentifier ?? "")
     }

@@ -8,6 +8,7 @@ STAGING="$(mktemp -d /private/tmp/local-dictation-build.XXXXXX)"
 trap 'rm -rf "$STAGING"' EXIT
 APP="$STAGING/Local Dictation.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
+cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 python3 scripts/configure-release.py "$APP/Contents/Info.plist"
 swift build "${ARGS[@]}"

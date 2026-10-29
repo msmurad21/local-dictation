@@ -93,7 +93,17 @@ import DictationCore
                 catch { self.error = "Recording retention cleanup failed: " + error.localizedDescription }
             }
         }
-        hotKey.mode = mode
+        // Fn is always hold-to-talk; hands-free is Fn + Space.
+        mode = .pushToTalk
+        fnShortcutsEnabled = true
+        UserDefaults.standard.set(true, forKey: "fnEnabled")
+        hotKey.fnEnabled = true
+        if !UserDefaults.standard.bool(forKey: "recordedShortcutsV1") {
+            for key in ["holdCode", "toggleCode"] { UserDefaults.standard.set(Int(UInt32.max), forKey: key) }
+            try? hotKey.configure(hold: .max, holdMods: 0, toggle: .max, toggleMods: 0, useFn: true)
+            UserDefaults.standard.set(true, forKey: "recordedShortcutsV1")
+        }
+        hotKey.mode = .pushToTalk
         hotKey.isHandsFree = { [weak self] in
             guard let self else { return false }
             return self.latched && (self.recording || self.starting)
@@ -131,6 +141,7 @@ import DictationCore
             }
         }
     }
+    func captureShortcut(_ active: Bool) { do { try hotKey.setCapture(active) } catch { self.error = error.localizedDescription } }
     func saveShortcuts(hold: UInt32, holdMods: UInt32, toggle: UInt32, toggleMods: UInt32, useFn: Bool) -> Bool {
         guard !recording && !busy && !starting else { return false }
         do {
@@ -306,6 +317,7 @@ import DictationCore
             if autoInsert, let destination {
                 submitting = true; hotKey.canCancel = false
                 status = try await destination.insert(transcript)
+                store.recordApp(name: destination.appName, bundleID: destination.bundleID, words: UsageStats.words(in: transcript))
                 hasUnpastedText = false
             } else { status = "Transcript ready to copy · recording saved for 24 hours" }
         } catch {
@@ -336,7 +348,7 @@ import DictationCore
         hideDashboard(); app.activate(options: [])
         try? await Task.sleep(for: .milliseconds(200))
         guard let selected = InsertionTarget.capture() else { error = "No destination app found."; return }
-        do { status = try await selected.insert(transcript); hasUnpastedText = false } catch { self.error = error.localizedDescription }
+        do { status = try await selected.insert(transcript); store.recordApp(name: selected.appName, bundleID: selected.bundleID, words: UsageStats.words(in: transcript)); hasUnpastedText = false } catch { self.error = error.localizedDescription }
     }
     func copy() {
         NSPasteboard.general.clearContents(); NSPasteboard.general.setString(transcript, forType: .string); status = "Copied"; hasUnpastedText = false

@@ -10,7 +10,7 @@ struct AppContextSettings: View {
             Text("Last recording target: " + controller.capturedContext).font(.caption).foregroundStyle(.secondary)
             Text("App vocabulary: " + (controller.lastExternalApp?.localizedName ?? "Switch to your target app first")).font(.subheadline)
             TextField("Jargon for this app, separated by commas", text: $terms)
-                .textFieldStyle(.roundedBorder).onChange(of: terms) { _ in saved = false }
+                .textFieldStyle(.plain).padding(12).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12)).onChange(of: terms) { _ in saved = false }
             HStack {
                 Button("Save app vocabulary") { controller.saveAppVocabulary(bundleID: bundleID, terms: terms); saved = true }
                     .disabled(bundleID.isEmpty || controller.recording || controller.busy)
