@@ -29,19 +29,19 @@ public enum ContextualSpelling {
         }
         return result
     }
+    static func phoneticKey(_ value: String) -> String {
+        var words = value.lowercased().split(separator: " ").map(String.init)
+        let letters = ["you": "u", "eye": "i", "cue": "q", "queue": "q", "kay": "k"]
+        words = words.map { letters[$0] ?? $0 }
+        var text = words.joined().filter { $0.isLetter }
+        text = text.replacingOccurrences(of: "c(?=[eiy])", with: "s", options: .regularExpression)
+        text = text.replacingOccurrences(of: "ph", with: "f")
+        text = text.replacingOccurrences(of: "[aeiou]", with: "", options: .regularExpression)
+        text = text.replacingOccurrences(of: "(.)\\1+", with: "$1", options: .regularExpression)
+        return text
+    }
     public static func similar(_ lhs: String, _ rhs: String) -> Bool {
-        func key(_ value: String) -> String {
-            var words = value.lowercased().split(separator: " ").map(String.init)
-            let letters = ["you": "u", "eye": "i", "cue": "q", "queue": "q", "kay": "k"]
-            words = words.map { letters[$0] ?? $0 }
-            var text = words.joined().filter { $0.isLetter }
-            text = text.replacingOccurrences(of: "c(?=[eiy])", with: "s", options: .regularExpression)
-            text = text.replacingOccurrences(of: "ph", with: "f")
-            text = text.replacingOccurrences(of: "[aeiou]", with: "", options: .regularExpression)
-            text = text.replacingOccurrences(of: "(.)\\1+", with: "$1", options: .regularExpression)
-            return text
-        }
-        let a = key(lhs), b = key(rhs)
+        let a = phoneticKey(lhs), b = phoneticKey(rhs)
         return a.count >= 2 && a == b
     }
 }

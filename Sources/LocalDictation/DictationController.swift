@@ -270,6 +270,7 @@ import DictationCore
         let startTime = finishedAt ?? ProcessInfo.processInfo.systemUptime
         let decodeStart = ProcessInfo.processInfo.systemUptime
         var cleanupSeconds = 0.0
+        var cleanupDeadline: TimeInterval?
         let vocabulary = store.data.vocabulary
         // Live dictation may change destinations while audio is decoded. Do not bias
         // recognition toward the app that happened to be open at recording start.
@@ -322,7 +323,9 @@ import DictationCore
                         let terms = vocabulary.map(\.phrase) + (appContext?.terms ?? [])
                         let category = appContext?.category ?? (!followsFocus && contextEnabled ? saved.context ?? .general : .general)
                         let cleanStart = ProcessInfo.processInfo.systemUptime
-                        let task = Task { try await processor.process(original, vocabulary: terms, context: category, appContext: appContext) }
+                        if cleanupDeadline == nil { cleanupDeadline = cleanStart + 2.5 }
+                        let timeLimit = max(0, cleanupDeadline! - cleanStart)
+                        let task = Task { try await processor.process(original, vocabulary: terms, context: category, appContext: appContext, timeLimit: timeLimit) }
                         polishTask = task
                         result = try await task.value
                         cleanupSeconds += ProcessInfo.processInfo.systemUptime - cleanStart

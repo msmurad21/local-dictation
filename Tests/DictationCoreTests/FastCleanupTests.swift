@@ -10,4 +10,8 @@ final class FastCleanupTests: XCTestCase {
         XCTAssertTrue(FastCleanup.hasVocabularyCandidate("Create a swift you eye view.", terms: ["SwiftUI"]))
         XCTAssertTrue(FastCleanup.hasVocabularyCandidate("Create a cedar for the database.", terms: ["seeder"]))
     }
+    func testCandidateVocabularyIsNarrowAndOrdered() {
+        XCTAssertEqual(FastCleanup.candidateTerms("Create a swift you eye view with a database cedar.", terms: ["Python", "SwiftUI", "seeder", "Redis"]), ["SwiftUI", "seeder"])
+        XCTAssertEqual(FastCleanup.candidateTerms("SwiftUI", terms: ["SwiftUI", "Redis"]), [])
+    }
 }

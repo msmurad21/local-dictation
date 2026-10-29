@@ -48,3 +48,11 @@ The dashboard now records recording-stop to **paste event sent**, with separate 
 Switched to `openai_whisper-large-v3-v20240930_626MB` with the `openai/whisper-large-v3-turbo` tokenizer. The same 11.18-second synthetic paragraph transcribed in 2.33, 1.99 and 1.99 seconds, with networking blocked for the entire process. Loading took 1.27 seconds after preparation. This is slower than the earlier Base measurement (0.38–0.51 seconds).
 
 All three Turbo outputs retained the paragraph but appended an unspoken “Okay.” A second synthetic technical sample recognized SwiftUI, PostgreSQL and Redis, but appended “Thank you.” These small synthetic tests verify operation, not an accuracy advantage; real speech should be evaluated before claiming improved accuracy. The existing original-transcript view and recording retry remain available. Raw paragraph results are in `results/turbo-audio.jsonl`.
+
+## Cleanup budget, v0.15.0
+
+Turbo remains the speech model. Cleanup now races against a shared 2.5-second budget and cancels outstanding model work on timeout. Waiting for uncooperative cancellation does not hold the caller. Validated intermediate edits are checkpointed; remaining content is preserved verbatim. Actual observed return times can be slightly higher because of scheduling and synchronous validation.
+
+The eight synthetic cleanup cases took roughly 0.4–1.1 seconds for ordinary examples; the slow mixed-edit case returned fallback at 2.59–2.62 seconds. A separate 450-word, numbered-detail stress transcript returned in 2.65–2.67 seconds and preserved all 450 words in their original order in both runs. These are cleanup-only timings, not stop-to-paste latency.
+
+The vocabulary scan now computes vocabulary phonetic keys once, indexes them, and sends only plausible candidate terms to the resolver. The same phonetic validation still guards every accepted substitution. Tests cover timeout, parent cancellation, errors, and ignored late results.

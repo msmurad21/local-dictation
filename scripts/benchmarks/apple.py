@@ -5,7 +5,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--cases", type=Path, default=Path(__file__).with_name("cases.json"))
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[2]
-files = ["Polishing.swift", "VoiceEdits.swift", "DictationContext.swift", "AppDictationContext.swift", "ContextualSpelling.swift", "FastCleanup.swift", "TranscriptLayout.swift"]
+files = ["Polishing.swift", "VoiceEdits.swift", "DictationContext.swift", "AppDictationContext.swift", "ContextualSpelling.swift", "FastCleanup.swift", "TranscriptLayout.swift", "OperationDeadline.swift"]
 parts = [(root/"Sources/DictationCore"/name).read_text() for name in files]
 parts.append((root/"Sources/LocalDictation/TranscriptProcessor.swift").read_text().replace("import DictationCore", ""))
 # The 500 ms prewarm lead time represents work done while the user records.
