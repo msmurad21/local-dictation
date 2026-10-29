@@ -55,6 +55,8 @@ import DictationCore
     private var recorder: AVAudioRecorder?
     private var audioURL: URL?
     private var target: InsertionTarget?
+    private var transcriptRecordingID: UUID?
+    private var transcriptDuration: Double?
     private var meter: Timer?
     private var permissionTimer: Timer?
     private var retentionTimer: Timer?
@@ -295,6 +297,7 @@ import DictationCore
                 status = "No speech detected · recording saved for retry"; return
             }
             // Make decoded speech available even if later cleanup or insertion fails.
+            transcriptRecordingID = item.id; transcriptDuration = item.duration
             rawTranscript = original; transcript = original; cleanupNote = "Original transcript"
             var result = PolishedTranscript(text: original, note: "Cleanup off · original transcript")
             if cleanupEnabled {
@@ -317,7 +320,7 @@ import DictationCore
             if autoInsert, let destination {
                 submitting = true; hotKey.canCancel = false
                 status = try await destination.insert(transcript)
-                store.recordApp(name: destination.appName, bundleID: destination.bundleID, words: UsageStats.words(in: transcript))
+                store.recordApp(name: destination.appName, bundleID: destination.bundleID, words: UsageStats.words(in: transcript), duration: transcriptDuration, recordingID: transcriptRecordingID)
                 hasUnpastedText = false
             } else { status = "Transcript ready to copy · recording saved for 24 hours" }
         } catch {
@@ -348,7 +351,7 @@ import DictationCore
         hideDashboard(); app.activate(options: [])
         try? await Task.sleep(for: .milliseconds(200))
         guard let selected = InsertionTarget.capture() else { error = "No destination app found."; return }
-        do { status = try await selected.insert(transcript); store.recordApp(name: selected.appName, bundleID: selected.bundleID, words: UsageStats.words(in: transcript)); hasUnpastedText = false } catch { self.error = error.localizedDescription }
+        do { status = try await selected.insert(transcript); store.recordApp(name: selected.appName, bundleID: selected.bundleID, words: UsageStats.words(in: transcript), duration: transcriptDuration, recordingID: transcriptRecordingID); hasUnpastedText = false } catch { self.error = error.localizedDescription }
     }
     func copy() {
         NSPasteboard.general.clearContents(); NSPasteboard.general.setString(transcript, forType: .string); status = "Copied"; hasUnpastedText = false
