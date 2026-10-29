@@ -21,13 +21,19 @@ public enum VoiceEdits {
         return sentence.range(of: "\\b(said|says|say|phrase|command|example|called|quote)\\b", options: .regularExpression) != nil
     }
     public static func apply(_ original: String) -> String {
-        let pattern = "(?i)\\b(?:please\\s+)?(?:(?:scratch|delete|remove)\\s+(?:that\\s+|the\\s+)?(?:last|previous)\\s+(?:line|sentence|word|paragraph)|scratch\\s+that|(?:delete|remove|undo)\\s+that(?=\\s*(?:[.,!?]|$))|(?:start|begin)\\s+(?:over|again)|clear\\s+(?:all\\s+of\\s+)?(?:that|everything))\\b[.,!?]?"
+        let pattern = "(?i)\\b(?:please\\s+)?(?:(?:scratch|delete|remove)\\s+(?:that\\s+|the\\s+)?(?:last|previous)\\s+(?:line|sentence|word|paragraph)|scratch\\s+that|(?:delete|remove|undo)\\s+that(?=\\s*(?:[.,!?]|$))|(?:start|begin)\\s+(?:over|again)|actually\\s*,?\\s+no(?!\\s+(?:problem|need|reason|doubt)\\b)|clear\\s+(?:all\\s+of\\s+)?(?:that|everything))\\b[.,!?]?"
         let regex = try! NSRegularExpression(pattern: pattern)
         var result = "", cursor = original.startIndex
         for match in regex.matches(in: original, range: NSRange(original.startIndex..., in: original)) {
             guard let range = Range(match.range, in: original), !isLiteral(range, in: original) else { continue }
-            result += original[cursor..<range.lowerBound]
             let command = original[range].lowercased()
+            if command.hasPrefix("actually") {
+                let preceding = result + original[cursor..<range.lowerBound]
+                let following = original[range.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines)
+                // A restatement needs both an earlier sentence and replacement speech.
+                guard preceding.contains(where: { $0.isLetter }), following.contains(where: { $0.isLetter }) else { continue }
+            }
+            result += original[cursor..<range.lowerBound]
             if command.contains("start over") || command.contains("start again") || command.contains("begin over") || command.contains("begin again") || command.contains("clear") { result = "" }
             else if command.contains("word") {
                 result = result.replacingOccurrences(of: "\\S+\\s*$", with: "", options: .regularExpression)

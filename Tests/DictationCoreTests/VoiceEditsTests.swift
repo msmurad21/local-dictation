@@ -2,6 +2,16 @@ import XCTest
 @testable import DictationCore
 
 final class VoiceEditsTests: XCTestCase {
+    func testActuallyNoRestatesLastSentence() {
+        XCTAssertEqual(VoiceEdits.apply("Meet on Monday. Actually no, meet on Tuesday instead."), "meet on Tuesday instead.")
+        XCTAssertEqual(VoiceEdits.apply("Keep the budget unchanged. Send it tomorrow. Actually, no. Send it on Friday."), "Keep the budget unchanged.  Send it on Friday.")
+        XCTAssertEqual(VoiceEdits.apply("We should meet on Monday actually no we should meet on Tuesday."), "we should meet on Tuesday.")
+        XCTAssertEqual(VoiceEdits.apply("Actually no, I disagree."), "Actually no, I disagree.")
+        XCTAssertEqual(VoiceEdits.apply("Send it tomorrow. Actually no."), "Send it tomorrow. Actually no.")
+        XCTAssertEqual(VoiceEdits.apply("That is actually no problem for me."), "That is actually no problem for me.")
+        XCTAssertEqual(VoiceEdits.apply("He said \"actually no\" and left."), "He said \"actually no\" and left.")
+    }
+
     func testAdditionalCuesAndFencedCorrections() throws {
         XCTAssertEqual(VoiceEdits.apply("Please delete that file tomorrow."), "Please delete that file tomorrow.")
         XCTAssertEqual(VoiceEdits.apply("Keep this. Wrong line. Undo that. Next idea."), "Keep this.  Next idea.")
