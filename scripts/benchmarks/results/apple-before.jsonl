@@ -1,0 +1,10 @@
+{"id":"prose","note":"Cleaned up locally · spelling, punctuation and formatting","round":0,"seconds":1.6078560833120719,"text":"So I really want this to stay the same because I think the details matter, and I do not want to lose the way I said it."}
+{"id":"list","note":"Applied spoken edits and list formatting locally","round":0,"seconds":0.59751349996076897,"text":"We need: \n• apples\n• bananas\n• and milk."}
+{"id":"correction","note":"Cleaned up locally · spelling, punctuation and formatting","round":0,"seconds":1.0836794166825712,"text":"Meet on Tuesday at noon.  Bring the report."}
+{"id":"jargon","note":"Kept the original: cleanup changed protected details or returned an incomplete result.","round":0,"seconds":4.6498255833867006,"text":"Create a SwiftUI view with a binding."}
+{"id":"restatement","note":"Cleaned up locally · spelling, punctuation and formatting","round":0,"seconds":0.58023245836375281,"text":"Keep the budget.  send it Friday."}
+{"id":"prose","note":"Cleaned up locally · spelling, punctuation and formatting","round":1,"seconds":0.91296987503301352,"text":"So I really want this to stay the same because I think the details matter, and I do not want to lose the way I said it."}
+{"id":"list","note":"Applied spoken edits and list formatting locally","round":1,"seconds":0.61683587497100234,"text":"We need: \n• apples\n• bananas\n• and milk."}
+{"id":"correction","note":"Cleaned up locally · spelling, punctuation and formatting","round":1,"seconds":1.1177252500201575,"text":"Meet on Tuesday at noon.  Bring the report."}
+{"id":"jargon","note":"Kept the original: cleanup changed protected details or returned an incomplete result.","round":1,"seconds":4.6163977083051577,"text":"Create a SwiftUI view with a binding."}
+{"id":"restatement","note":"Cleaned up locally · spelling, punctuation and formatting","round":1,"seconds":0.53548133338335901,"text":"Keep the budget.  send it Friday."}

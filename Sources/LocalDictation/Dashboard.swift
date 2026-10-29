@@ -120,6 +120,10 @@ struct DashboardView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack { Text("Latest transcript").font(.headline); Spacer(); Button("Copy") { controller.copy() }.disabled(controller.transcript.isEmpty); Button("Paste in last app") { Task { await controller.pasteLast() } }.disabled(controller.transcript.isEmpty || controller.busy || controller.recording) }
                 TextEditor(text: $controller.transcript).font(.body).scrollContentBackground(.hidden).frame(height: 130).disabled(controller.busy)
+                if let latency = store.data.lastLatency {
+                    Text(String(format: "Last paste sent in %.1f seconds", latency.total)).font(.caption).foregroundStyle(.secondary)
+                        .help(String(format: "Transcription %.2fs · cleanup %.2fs · paste %.2fs. Measured from recording stop to sending paste; excludes clipboard restoration.", latency.transcription, latency.cleanup, latency.paste))
+                }
                 if !controller.cleanupNote.isEmpty { Text(controller.cleanupNote).font(.caption).foregroundStyle(.secondary) }
                 if !controller.rawTranscript.isEmpty {
                     Button { withAnimation { showOriginal.toggle() } } label: {

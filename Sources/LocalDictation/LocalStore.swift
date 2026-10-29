@@ -7,6 +7,7 @@ import DictationCore
         var vocabulary: [VocabularyEntry] = []
         var apps: [UsedApp]?
         var appEvents: [AppUsageEvent]?
+        var lastLatency: LatencySample?
     }
     @Published private(set) var data = DataFile()
     @Published var saveError: String?
@@ -17,6 +18,7 @@ import DictationCore
             catch { saveError = "Could not read saved statistics: \(error.localizedDescription)" }
         }
     }
+    func recordLatency(_ sample: LatencySample) { data.lastLatency = sample; save() }
     func record(words: Int, duration: Double) {
         guard words > 0 else { return }
         data.sessions.append(UsageEntry(words: words, duration: duration)); save()

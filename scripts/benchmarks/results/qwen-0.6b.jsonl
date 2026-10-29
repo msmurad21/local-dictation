@@ -1,0 +1,11 @@
+{"load_seconds": 0.49316908296896145}
+{"id": "prose", "round": 0, "seconds": 1.4120080000138842, "response": "So I really want this to stay the same because I think the details matter, and I do not want to lose the way I said it.", "peak_memory_mb": 675.972204}
+{"id": "list", "round": 0, "seconds": 0.10053308302303776, "response": "- We need apples, bananas, and milk.", "peak_memory_mb": 675.972204}
+{"id": "correction", "round": 0, "seconds": 0.19691350002540275, "response": "```json\n[\n  {\n    \"command\": \"Actually make that Tuesday.\",\n    \"target\": \"Tuesday\",\n    \"replacement\": \"Tuesday\"\n  }\n]\n```", "peak_memory_mb": 675.972204}
+{"id": "jargon", "round": 0, "seconds": 0.16744762501912192, "response": "```json\n[\n  {\n    \"heard\": \"swift you eye\",\n    \"term\": \"SwiftUI\"\n  }\n]\n```", "peak_memory_mb": 675.972204}
+{"id": "restatement", "round": 0, "seconds": 0.09317816700786352, "response": "Keep the budget. Send it Friday.", "peak_memory_mb": 675.972204}
+{"id": "prose", "round": 1, "seconds": 0.18167466699378565, "response": "So I really want this to stay the same because I think the details matter, and I do not want to lose the way I said it.", "peak_memory_mb": 675.972204}
+{"id": "list", "round": 1, "seconds": 0.10143866605358198, "response": "- We need apples, bananas, and milk.", "peak_memory_mb": 675.972204}
+{"id": "correction", "round": 1, "seconds": 0.19183845800580457, "response": "```json\n[\n  {\n    \"command\": \"Actually make that Tuesday.\",\n    \"target\": \"Tuesday\",\n    \"replacement\": \"Tuesday\"\n  }\n]\n```", "peak_memory_mb": 675.972204}
+{"id": "jargon", "round": 1, "seconds": 0.16582966595888138, "response": "```json\n[\n  {\n    \"heard\": \"swift you eye\",\n    \"term\": \"SwiftUI\"\n  }\n]\n```", "peak_memory_mb": 675.972204}
+{"id": "restatement", "round": 1, "seconds": 0.09296679199906066, "response": "Keep the budget. Send it Friday.", "peak_memory_mb": 675.972204}

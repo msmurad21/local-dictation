@@ -35,7 +35,7 @@ struct InsertionTarget {
                     context: .classify(bundleID: app.bundleIdentifier), bundleID: app.bundleIdentifier ?? "")
     }
 
-    @MainActor func insert(_ text: String) async throws -> String {
+    @MainActor func insert(_ text: String, onPaste: (() -> Void)? = nil) async throws -> String {
         guard AXIsProcessTrusted() else { throw AppError.message("Enable Accessibility for Local Dictation in System Settings. Your transcript is ready to copy.") }
         try validateFocus()
         if let element {
@@ -71,6 +71,7 @@ struct InsertionTarget {
         let version = board.changeCount
         down.flags = .maskCommand; up.flags = .maskCommand
         down.postToPid(processID); up.postToPid(processID)
+        onPaste?()
         try? await Task.sleep(for: .milliseconds(900))
         if board.changeCount == version { board.clearContents(); board.writeObjects(saved) }
         return "Paste sent to \(appName)"

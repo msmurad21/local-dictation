@@ -1,0 +1,16 @@
+{"id":"prose","note":"Cleaned up locally · spelling, punctuation and formatting","round":0,"seconds":0.84009704168420285,"text":"So I really want this to stay the same because I think the details matter, and I do not want to lose the way I said it."}
+{"id":"list","note":"Applied spoken edits and list formatting locally","round":0,"seconds":0.63443087501218542,"text":"We need: \n• apples\n• bananas\n• and milk."}
+{"id":"correction","note":"Cleaned up locally · spelling, punctuation and formatting","round":0,"seconds":1.0838167500332929,"text":"Meet on Tuesday at noon.  Bring the report."}
+{"id":"jargon","note":"Cleaned up locally · spelling, punctuation and formatting","round":0,"seconds":1.0217020833515562,"text":"Create a SwiftUI view with a binding."}
+{"id":"restatement","note":"Cleaned up locally · spelling, punctuation and formatting","round":0,"seconds":0.39349350001430139,"text":"Keep the budget. Send it Friday."}
+{"id":"inferred_list","note":"Cleaned up locally · spelling, punctuation and formatting","round":0,"seconds":0.45205737499054521,"text":"We need to:\n• review the page\n• check pricing\n• and confirm the date."}
+{"id":"inferred_steps","note":"Cleaned up locally · spelling, punctuation and formatting","round":0,"seconds":0.45032529172021896,"text":"To publish:\n1. review the draft\n2. then fix mistakes\n3. and finally send it."}
+{"id":"mixed","note":"Kept original wording where layout could not be validated","round":0,"seconds":3.3337613333133049,"text":"Create a swift you eye view on Monday. Make that Tuesday."}
+{"id":"prose","note":"Cleaned up locally · spelling, punctuation and formatting","round":1,"seconds":0.64690349996089935,"text":"So I really want this to stay the same because I think the details matter, and I do not want to lose the way I said it."}
+{"id":"list","note":"Applied spoken edits and list formatting locally","round":1,"seconds":0.58556999999564141,"text":"We need: \n• apples\n• bananas\n• and milk."}
+{"id":"correction","note":"Cleaned up locally · spelling, punctuation and formatting","round":1,"seconds":1.0982535416842438,"text":"Meet on Tuesday at noon.  Bring the report."}
+{"id":"jargon","note":"Cleaned up locally · spelling, punctuation and formatting","round":1,"seconds":1.0292464999947697,"text":"Create a SwiftUI view with a binding."}
+{"id":"restatement","note":"Cleaned up locally · spelling, punctuation and formatting","round":1,"seconds":0.3959606250282377,"text":"Keep the budget. Send it Friday."}
+{"id":"inferred_list","note":"Cleaned up locally · spelling, punctuation and formatting","round":1,"seconds":0.45285066665383056,"text":"We need to:\n• review the page\n• check pricing\n• and confirm the date."}
+{"id":"inferred_steps","note":"Cleaned up locally · spelling, punctuation and formatting","round":1,"seconds":0.51234537502750754,"text":"To publish:\n1. review the draft\n2. then fix mistakes\n3. and finally send it."}
+{"id":"mixed","note":"Kept original wording where layout could not be validated","round":1,"seconds":3.256346708338242,"text":"Create a swift you eye view on Monday. Make that Tuesday."}

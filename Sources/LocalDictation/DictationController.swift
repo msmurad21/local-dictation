@@ -211,6 +211,7 @@ import DictationCore
             capture.isMeteringEnabled = true
             guard capture.record() else { throw AppError.message("The microphone could not start recording.") }
             try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+            if cleanupEnabled { Task { await processor.prewarm() } }
             recorder = capture; target = selectedTarget; recording = true; starting = false; elapsed = 0
             levels = Array(repeating: 0.03, count: 28)
             hotKey.canCancel = true
@@ -232,6 +233,7 @@ import DictationCore
     func stop() async {
         gate.release()
         guard recording, let recorder, let url = audioURL else { return }
+        let finishedAt = ProcessInfo.processInfo.systemUptime
         let duration = recorder.currentTime
         recorder.stop(); self.recorder = nil; meter?.invalidate(); meter = nil
         recording = false; latched = false
@@ -242,7 +244,7 @@ import DictationCore
         do { try archive.save(item) } catch { self.error = "Could not save recovery metadata: " + error.localizedDescription }
         audioURL = nil; activeRecording = nil
         target = nil
-        await processRecording(item, url: url)
+        await processRecording(item, url: url, finishedAt: finishedAt)
     }
     func retryRecording(_ item: SavedRecording) async {
         guard ready && !busy && !recording && !starting && !updates.isInstalling, let archive else { return }
@@ -261,10 +263,13 @@ import DictationCore
     func revealRecordings() {
         if let archive { NSWorkspace.shared.open(archive.root) }
     }
-    private func processRecording(_ saved: SavedRecording, url: URL, followsFocus: Bool = true) async {
+    private func processRecording(_ saved: SavedRecording, url: URL, followsFocus: Bool = true, finishedAt: Double? = nil) async {
         busy = true; error = nil; hotKey.canCancel = true
         var item = saved
         let job = generation
+        let startTime = finishedAt ?? ProcessInfo.processInfo.systemUptime
+        let decodeStart = ProcessInfo.processInfo.systemUptime
+        var cleanupSeconds = 0.0
         let vocabulary = store.data.vocabulary
         // Live dictation may change destinations while audio is decoded. Do not bias
         // recognition toward the app that happened to be open at recording start.
@@ -291,6 +296,7 @@ import DictationCore
                 }
             }
             guard job == generation else { throw CancellationError() }
+            let transcriptionSeconds = ProcessInfo.processInfo.systemUptime - decodeStart
             let original = Vocabulary.apply(vocabulary, to: Transcript.clean(raw))
             guard !original.isEmpty else {
                 item.state = "no speech"; try archive?.save(item)
@@ -315,9 +321,11 @@ import DictationCore
                         status = attempt == 0 ? "Cleaning up for \(current?.appName ?? "your destination")…" : "Adapting to \(current?.appName ?? "your destination")…"
                         let terms = vocabulary.map(\.phrase) + (appContext?.terms ?? [])
                         let category = appContext?.category ?? (!followsFocus && contextEnabled ? saved.context ?? .general : .general)
+                        let cleanStart = ProcessInfo.processInfo.systemUptime
                         let task = Task { try await processor.process(original, vocabulary: terms, context: category, appContext: appContext) }
                         polishTask = task
                         result = try await task.value
+                        cleanupSeconds += ProcessInfo.processInfo.systemUptime - cleanStart
                     }
                     lastContext = appContext
                 }
@@ -336,7 +344,10 @@ import DictationCore
                 if autoInsert, followsFocus, let latest {
                     submitting = true; hotKey.canCancel = false
                     do {
-                        status = try await latest.insert(transcript)
+                        let pasteStart = ProcessInfo.processInfo.systemUptime
+                        var postedAt = pasteStart
+                        status = try await latest.insert(transcript) { postedAt = ProcessInfo.processInfo.systemUptime }
+                        store.recordLatency(LatencySample(transcription: transcriptionSeconds, cleanup: cleanupSeconds, paste: postedAt - pasteStart, total: postedAt - startTime))
                     } catch is DestinationChanged {
                         submitting = false; hotKey.canCancel = true
                         continue
