@@ -1,0 +1,7 @@
+# Transcript fidelity (v0.12.0)
+
+Cleanup preserves original word order, sentence structure, repetitions, filler words and conversational flow. Permitted edits are capitalization, punctuation, layout and narrow spelling corrections. Bullets keep conjunctions and shared introductory wording. Headings must not introduce or duplicate words. Ordered token validation rejects summaries, paraphrases, reordered clauses and dropped details; rejected cleanup falls back to the transcript after explicit spoken edits and validated vocabulary corrections. Conservative spelling validation may leave unfamiliar misspellings unchanged; use vocabulary hints or exact vocabulary replacements for those terms.
+
+Spoken editing runs before preservation checks so intentional deletions and corrections remain possible. Additional cues include undo that, delete that, remove that, scratch that last sentence, start again, begin again, make this a bullet list, format as a numbered list, new paragraph, next paragraph, new line and next line. Initial bullet-list/numbered-list cues are consumed. Quoted/reported cues remain prose. Explicit correction JSON wrapped in code fences is now decoded, fixing previously ignored make-that/change/replace responses.
+
+Unknown or ambiguous cues can still remain literal; the app does not execute arbitrary instructions. Original transcripts remain available for restoration. Verified with 40 regression tests and real local-model examples for conversational wording, lists, anchored date corrections, undo and paragraphs.

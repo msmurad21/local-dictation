@@ -21,14 +21,14 @@ public enum VoiceEdits {
         return sentence.range(of: "\\b(said|says|say|phrase|command|example|called|quote)\\b", options: .regularExpression) != nil
     }
     public static func apply(_ original: String) -> String {
-        let pattern = "(?i)\\b(?:please\\s+)?(?:(?:scratch|delete|remove)\\s+(?:the\\s+)?(?:last|previous)\\s+(?:line|sentence|word|paragraph)|scratch\\s+that|start\\s+over|clear\\s+(?:all\\s+of\\s+)?(?:that|everything))\\b[.,!?]?"
+        let pattern = "(?i)\\b(?:please\\s+)?(?:(?:scratch|delete|remove)\\s+(?:that\\s+|the\\s+)?(?:last|previous)\\s+(?:line|sentence|word|paragraph)|scratch\\s+that|(?:delete|remove|undo)\\s+that(?=\\s*(?:[.,!?]|$))|(?:start|begin)\\s+(?:over|again)|clear\\s+(?:all\\s+of\\s+)?(?:that|everything))\\b[.,!?]?"
         let regex = try! NSRegularExpression(pattern: pattern)
         var result = "", cursor = original.startIndex
         for match in regex.matches(in: original, range: NSRange(original.startIndex..., in: original)) {
             guard let range = Range(match.range, in: original), !isLiteral(range, in: original) else { continue }
             result += original[cursor..<range.lowerBound]
             let command = original[range].lowercased()
-            if command.contains("start over") || command.contains("clear") { result = "" }
+            if command.contains("start over") || command.contains("start again") || command.contains("begin over") || command.contains("begin again") || command.contains("clear") { result = "" }
             else if command.contains("word") {
                 result = result.replacingOccurrences(of: "\\S+\\s*$", with: "", options: .regularExpression)
             } else if command.contains("paragraph") {
@@ -47,7 +47,7 @@ public enum VoiceEdits {
     }
 
     public static func formatting(_ input: String) -> (text: String, style: String?) {
-        let pattern = "(?i)\\b(?:make|turn|put|format)\\s+(?:that|those|this|these|it|the above)(?:\\s+into|\\s+as)?\\s+(?:a\\s+)?(?:bullet points|bulleted list|numbered list|paragraphs?)[.,!?]?"
+        let pattern = "(?i)\\b(?:make|turn|put|format)\\s+(?:(?:that|those|this|these|it|the above)\\s+)?(?:into\\s+|as\\s+)?(?:a\\s+)?(?:bullet points|bullet list|bulleted list|numbered list|paragraphs?)[.,!?]?"
         let regex = try! NSRegularExpression(pattern: pattern)
         var output = input, style: String?
         let matches = regex.matches(in: input, range: NSRange(input.startIndex..., in: input))
@@ -60,7 +60,24 @@ public enum VoiceEdits {
             guard let range = Range(match.range, in: input), !isLiteral(range, in: input), let outputRange = Range(match.range, in: output) else { continue }
             output.removeSubrange(outputRange)
         }
+        if let prefix = output.range(of: "(?i)^\\s*(?:bullet points|bulleted list|bullet list|numbered list)\\b[.:,]?\\s*", options: .regularExpression) {
+            style = output[prefix].lowercased().contains("numbered") ? "STEPS" : "BULLETS"
+            output.removeSubrange(prefix)
+        }
+        let breaks = try! NSRegularExpression(pattern: "(?i)\\b(?:new paragraph|next paragraph|new line|next line)\\b[.,!?]?")
+        for match in breaks.matches(in: output, range: NSRange(output.startIndex..., in: output)).reversed() {
+            guard let range = Range(match.range, in: output), !isLiteral(range, in: output) else { continue }
+            let prefix = output[..<range.lowerBound].lowercased()
+            if prefix.hasSuffix("a ") || prefix.hasSuffix("the ") { continue }
+            let paragraph = output[range].lowercased().contains("paragraph")
+            output.replaceSubrange(range, with: paragraph ? "\n\n" : "\n")
+        }
         return (output.trimmingCharacters(in: .whitespacesAndNewlines), style)
+    }
+
+    public static func jsonData(_ response: String) -> Data? {
+        response.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "^```(?:json)?\\s*|\\s*```$", with: "", options: .regularExpression).data(using: .utf8)
     }
 
     public struct Correction: Codable {

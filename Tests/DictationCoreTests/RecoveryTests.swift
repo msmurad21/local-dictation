@@ -41,6 +41,6 @@ final class RecoveryTests: XCTestCase {
         let original = "Please review the proposal carefully tomorrow morning before meeting the client. Keep the original budget unchanged and send the final report to Sarah after lunch."
         XCTAssertFalse(Polishing.acceptable("Please review the proposal carefully tomorrow morning before meeting the client. Keep the original budget unchanged.", original: original))
         XCTAssertFalse(Polishing.acceptable("Please review the proposal carefully tomorrow morning before meeting the client. Send the final report to Sarah after lunch.", original: original))
-        XCTAssertTrue(Polishing.acceptable("• Please review the proposal carefully tomorrow morning before meeting the client.\n• Keep the original budget unchanged.\n• Send the final report to Sarah after lunch.", original: original))
+        XCTAssertTrue(Polishing.acceptable("• Please review the proposal carefully tomorrow morning before meeting the client.\n• Keep the original budget unchanged.\n• And send the final report to Sarah after lunch.", original: original))
     }
 }

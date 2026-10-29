@@ -2,6 +2,18 @@ import XCTest
 @testable import DictationCore
 
 final class VoiceEditsTests: XCTestCase {
+    func testAdditionalCuesAndFencedCorrections() throws {
+        XCTAssertEqual(VoiceEdits.apply("Please delete that file tomorrow."), "Please delete that file tomorrow.")
+        XCTAssertEqual(VoiceEdits.apply("Keep this. Wrong line. Undo that. Next idea."), "Keep this.  Next idea.")
+        XCTAssertEqual(VoiceEdits.apply("Wrong line. Scratch that last sentence. Next idea."), "Next idea.")
+        XCTAssertEqual(VoiceEdits.formatting("Apples and milk. Make this a bullet list.").style, "BULLETS")
+        XCTAssertEqual(VoiceEdits.formatting("Apples and milk. Format as a numbered list.").style, "STEPS")
+        XCTAssertTrue(VoiceEdits.formatting("Hello. New paragraph. How are you?").text.contains("\n\n"))
+        XCTAssertEqual(VoiceEdits.formatting("We need a new paragraph here.").text, "We need a new paragraph here.")
+        let data = VoiceEdits.jsonData("```json\n[{\"command\":\"Make that Tuesday.\",\"target\":\"Monday\",\"replacement\":\"Tuesday\"}]\n```")!
+        XCTAssertEqual(try JSONDecoder().decode([VoiceEdits.Correction].self, from: data).count, 1)
+    }
+
     func testScratchSentenceAndContinue() {
         XCTAssertEqual(VoiceEdits.apply("Keep this sentence. Remove this one. Scratch the last line. Add a new idea."), "Keep this sentence.  Add a new idea.")
         XCTAssertEqual(VoiceEdits.apply("Meet on Monday scratch that Meet on Tuesday."), "Meet on Tuesday.")

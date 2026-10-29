@@ -12,7 +12,7 @@ final class DictationContextTests: XCTestCase {
         XCTAssertEqual(DictationContext.classify(bundleID: nil), .general)
     }
     func testContextualSpellingAndUnwantedCommentary() {
-        XCTAssertTrue(Polishing.acceptable("Run the database seeder before the tests.", original: "Run the database cedar before the tests."))
+        XCTAssertFalse(Polishing.acceptable("Run the database seeder before the tests.", original: "Run the database cedar before the tests."))
         XCTAssertFalse(Polishing.acceptable("Heading: Spelling\n\nTranscript:\nThe cedar tree is tall.", original: "The cedar tree is tall."))
     }
     func testLegacyMetadataAndRetryContext() throws {

@@ -3,9 +3,16 @@ import XCTest
 
 final class PolishingTests: XCTestCase {
     func testAcceptsGrammarAndLists() {
-        XCTAssertTrue(Polishing.acceptable("I received your message.", original: "um i recieved your mesage"))
-        XCTAssertTrue(Polishing.acceptable("1. Review the draft.\n2. Send it.", original: "numbered list first review the draft second send it"))
-        XCTAssertTrue(Polishing.acceptable("• Pay $25.\n• Email sam@example.com.", original: "bullet points pay $25 email sam@example.com"))
+        XCTAssertTrue(Polishing.acceptable("I received your message.", original: "i recieved your mesage"))
+        XCTAssertTrue(Polishing.acceptable("1. Review the draft.\n2. Send it.", original: "review the draft send it"))
+        XCTAssertTrue(Polishing.acceptable("• Pay $25.\n• Email sam@example.com.", original: "pay $25 email sam@example.com"))
+    }
+    func testPreservesWordingOrderAndRepetitions() {
+        XCTAssertFalse(Polishing.acceptable("We need to create a SwiftUI view.", original: "Create a SwiftUI view."))
+        XCTAssertFalse(Polishing.acceptable("Send it after review.", original: "Review it after sending."))
+        XCTAssertFalse(Polishing.acceptable("I want this because it matters.", original: "So I really want this, I want this because it matters."))
+        XCTAssertTrue(Polishing.acceptable("So, I really want this.\n\nI want this because it matters.", original: "So I really want this I want this because it matters"))
+        XCTAssertTrue(Polishing.acceptable("We need:\n• apples,\n• bananas,\n• and milk.", original: "We need apples bananas and milk."))
     }
     func testRejectsChangedNumbersAddressesAndEmptyOutput() {
         XCTAssertFalse(Polishing.acceptable("Pay $50.", original: "pay $25"))
