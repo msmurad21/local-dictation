@@ -241,8 +241,8 @@ import DictationCore
         item.duration = duration
         do { try archive.save(item) } catch { self.error = "Could not save recovery metadata: " + error.localizedDescription }
         audioURL = nil; activeRecording = nil
-        let destination = target; target = nil
-        await processRecording(item, url: url, destination: destination)
+        target = nil
+        await processRecording(item, url: url)
     }
     func retryRecording(_ item: SavedRecording) async {
         guard ready && !busy && !recording && !starting && !updates.isInstalling, let archive else { return }
@@ -251,7 +251,7 @@ import DictationCore
         if recovered.duration == 0, let file = try? AVAudioFile(forReading: archive.audioURL(item)) {
             recovered.duration = Double(file.length) / file.processingFormat.sampleRate
         }
-        await processRecording(recovered, url: archive.audioURL(item), destination: nil)
+        await processRecording(recovered, url: archive.audioURL(item), followsFocus: false)
     }
     func deleteRecording(_ item: SavedRecording) {
         guard !busy && !recording && !starting else { return }
@@ -261,14 +261,14 @@ import DictationCore
     func revealRecordings() {
         if let archive { NSWorkspace.shared.open(archive.root) }
     }
-    private func processRecording(_ saved: SavedRecording, url: URL, destination: InsertionTarget?) async {
+    private func processRecording(_ saved: SavedRecording, url: URL, followsFocus: Bool = true) async {
         busy = true; error = nil; hotKey.canCancel = true
         var item = saved
         let job = generation
         let vocabulary = store.data.vocabulary
-        let appContext = contextEnabled ? saved.appContext : nil
-        let hints = vocabulary.map(\.phrase) + (appContext?.terms ?? [])
-        capturedContext = appContext.map { "\($0.appName) · \($0.bundleID)" } ?? "General context"
+        // Live dictation may change destinations while audio is decoded. Do not bias
+        // recognition toward the app that happened to be open at recording start.
+        let hints = vocabulary.map(\.phrase) + (followsFocus ? [] : (contextEnabled ? saved.appContext?.terms ?? [] : []))
         defer {
             busy = false; submitting = false; polishTask = nil; speechTask = nil; hotKey.canCancel = false
             savedRecordings = archive?.recordings() ?? []
@@ -299,30 +299,60 @@ import DictationCore
             // Make decoded speech available even if later cleanup or insertion fails.
             transcriptRecordingID = item.id; transcriptDuration = item.duration
             rawTranscript = original; transcript = original; cleanupNote = "Original transcript"
-            var result = PolishedTranscript(text: original, note: "Cleanup off · original transcript")
-            if cleanupEnabled {
-                status = "Cleaning up locally…"
-                let task = Task { try await processor.process(original, vocabulary: hints, context: contextEnabled ? (saved.context ?? .general) : .general, appContext: appContext) }
-                polishTask = task
-                result = try await task.value
+            var lastContext: AppDictationContext?
+            var result: PolishedTranscript?
+            var delivered = false
+            for attempt in 0..<5 {
+                guard job == generation else { throw CancellationError() }
+                let current = followsFocus ? InsertionTarget.capture() : nil
+                let appContext: AppDictationContext? = contextEnabled
+                    ? (followsFocus ? current.map { AppDictationContext(appName: $0.appName, bundleID: $0.bundleID, customTerms: appVocabulary[$0.bundleID] ?? "") } : saved.appContext)
+                    : nil
+                capturedContext = appContext.map { "\($0.appName) · \($0.bundleID)" } ?? "General context"
+                if result == nil || lastContext != appContext {
+                    result = PolishedTranscript(text: original, note: "Cleanup off · original transcript")
+                    if cleanupEnabled {
+                        status = attempt == 0 ? "Cleaning up for \(current?.appName ?? "your destination")…" : "Adapting to \(current?.appName ?? "your destination")…"
+                        let terms = vocabulary.map(\.phrase) + (appContext?.terms ?? [])
+                        let category = appContext?.category ?? (!followsFocus && contextEnabled ? saved.context ?? .general : .general)
+                        let task = Task { try await processor.process(original, vocabulary: terms, context: category, appContext: appContext) }
+                        polishTask = task
+                        result = try await task.value
+                    }
+                    lastContext = appContext
+                }
+                guard job == generation else { throw CancellationError() }
+                cleanupNote = result!.note
+                transcript = Vocabulary.apply(vocabulary, to: result!.text)
+                if transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    item.state = "completed"; try archive?.save(item)
+                    status = "Dictation cleared by spoken command"; return
+                }
+                // Capture again after model work: the current field, not the starting
+                // field, receives the paste. A new app needs fresh contextual cleanup.
+                let latest = followsFocus ? InsertionTarget.capture() : nil
+                if followsFocus && current?.bundleID != latest?.bundleID { continue }
+                item.appContext = appContext; item.context = appContext?.category
+                if autoInsert, followsFocus, let latest {
+                    submitting = true; hotKey.canCancel = false
+                    do {
+                        status = try await latest.insert(transcript)
+                    } catch is DestinationChanged {
+                        submitting = false; hotKey.canCancel = true
+                        continue
+                    }
+                    store.recordApp(name: latest.appName, bundleID: latest.bundleID, words: UsageStats.words(in: transcript), duration: transcriptDuration, recordingID: transcriptRecordingID)
+                    hasUnpastedText = false
+                } else { status = "Transcript ready to copy · recording saved for 24 hours" }
+                delivered = true
+                break
             }
-            guard job == generation else { throw CancellationError() }
-            cleanupNote = result.note
-            transcript = Vocabulary.apply(vocabulary, to: result.text)
-            if transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                item.state = "completed"; try archive?.save(item)
-                status = "Dictation cleared by spoken command"; return
-            }
+            guard delivered else { throw AppError.message("The destination kept changing during cleanup. Your transcript is ready to copy.") }
             let shouldCount = !item.counted
             item.state = "completed"; item.counted = true
             try archive?.save(item)
             if shouldCount { store.record(words: UsageStats.words(in: original), duration: item.duration) }
-            if autoInsert, let destination {
-                submitting = true; hotKey.canCancel = false
-                status = try await destination.insert(transcript)
-                store.recordApp(name: destination.appName, bundleID: destination.bundleID, words: UsageStats.words(in: transcript), duration: transcriptDuration, recordingID: transcriptRecordingID)
-                hasUnpastedText = false
-            } else { status = "Transcript ready to copy · recording saved for 24 hours" }
+
         } catch {
             if job != generation {
                 // Explicit cancellation discards audio and must not resume at next launch.

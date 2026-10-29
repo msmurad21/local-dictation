@@ -7,7 +7,7 @@ struct AppContextSettings: View {
     private var bundleID: String { controller.lastExternalApp?.bundleIdentifier ?? "" }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Last recording target: " + controller.capturedContext).font(.caption).foregroundStyle(.secondary)
+            Text("Latest destination: " + controller.capturedContext).font(.caption).foregroundStyle(.secondary)
             Text("App vocabulary: " + (controller.lastExternalApp?.localizedName ?? "Switch to your target app first")).font(.subheadline)
             TextField("Jargon for this app, separated by commas", text: $terms)
                 .textFieldStyle(.plain).padding(12).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12)).onChange(of: terms) { _ in saved = false }

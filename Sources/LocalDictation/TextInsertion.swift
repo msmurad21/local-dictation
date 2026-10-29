@@ -2,6 +2,8 @@ import AppKit
 import ApplicationServices
 import DictationCore
 
+struct DestinationChanged: Error {}
+
 struct InsertionTarget {
     let processID: pid_t
     let element: AXUIElement?
@@ -75,18 +77,18 @@ struct InsertionTarget {
     }
     @MainActor private func validateFocus() throws {
         guard NSWorkspace.shared.frontmostApplication?.processIdentifier == processID else {
-            throw AppError.message("You switched apps. Your transcript is ready to copy.")
+            throw DestinationChanged()
         }
         let ax = AXUIElementCreateApplication(processID)
         if let window, let current = Self.attribute(ax, kAXFocusedWindowAttribute), !CFEqual(window, current) {
-            throw AppError.message("You switched windows. Your transcript is ready to copy.")
+            throw DestinationChanged()
         }
         if let element, let current = Self.attribute(ax, kAXFocusedUIElementAttribute), !CFEqual(element, current) {
             // Only reject a proven move between editable fields; container proxies vary.
             var oldSettable: DarwinBoolean = false, newSettable: DarwinBoolean = false
             AXUIElementIsAttributeSettable(element, kAXSelectedTextAttribute as CFString, &oldSettable)
             AXUIElementIsAttributeSettable(current, kAXSelectedTextAttribute as CFString, &newSettable)
-            if oldSettable.boolValue && newSettable.boolValue { throw AppError.message("You moved to another field. Your transcript is ready to copy.") }
+            if oldSettable.boolValue && newSettable.boolValue { throw DestinationChanged() }
         }
     }
 }
