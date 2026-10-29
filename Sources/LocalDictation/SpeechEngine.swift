@@ -8,7 +8,8 @@ enum AppError: LocalizedError {
 }
 
 actor SpeechEngine {
-    static let variant = "openai_whisper-base"
+    static let variant = "openai_whisper-large-v3-v20240930_626MB"
+    static let modelName = "Whisper Large v3 Turbo"
     let root: URL
     private var pipe: WhisperKit?
 
@@ -20,7 +21,7 @@ actor SpeechEngine {
 
     func prepare(progress: @escaping @Sendable (String) -> Void) async throws {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        progress("Downloading multilingual speech model…")
+        progress("Downloading Whisper Large v3 Turbo…")
         let folder = try await WhisperKit.download(variant: Self.variant, downloadBase: root) { value in
             progress("Downloading model: \(Int(value.fractionCompleted * 100))%")
         }
@@ -31,7 +32,7 @@ actor SpeechEngine {
         for name in ["tokenizer.json", "tokenizer_config.json"] {
             let destination = folder.appendingPathComponent(name)
             if !FileManager.default.fileExists(atPath: destination.path) {
-                let url = URL(string: "https://huggingface.co/openai/whisper-base/resolve/main/\(name)")!
+                let url = URL(string: "https://huggingface.co/openai/whisper-large-v3-turbo/resolve/main/\(name)")!
                 let (data, response) = try await URLSession.shared.data(from: url)
                 guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw AppError.message("Tokenizer download failed.") }
                 _ = try JSONSerialization.jsonObject(with: data)

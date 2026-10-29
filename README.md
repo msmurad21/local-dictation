@@ -1,6 +1,6 @@
 # Local Dictation
 
-Open-source macOS 14+ dictation with local Whisper Base inference. Optimized and tested on Apple silicon; the build pipeline also produces an Intel binary. Intel runtime performance has not been validated.
+Open-source macOS 14+ dictation with local Whisper Large v3 Turbo inference. Optimized and tested on Apple silicon; the build pipeline also produces an Intel binary. Intel runtime performance has not been validated.
 
 ## Everyday use
 
@@ -52,7 +52,7 @@ Failed transcription gets up to three attempts. Pending recordings are processed
 
 Speech decoding uses timestamps and voice-activity-based chunking, processes the final short fragment, and adds silent padding to protect the ending. These measures reduce truncation but cannot guarantee perfect recognition. The raw transcript remains accessible if AI cleanup changes wording. A partial but plausible recognition result may not be detectable automatically; use the saved recording to retry.
 
-Download the multilingual Base model once using Controls. Model and tokenizer files are downloaded from Hugging Face. Speech inference runs locally with no speech API, analytics, or account. WhisperKit may attempt to fetch a tokenizer if local assets are corrupt; speech is not uploaded. The supported model path has been exercised with all networking denied.
+Download the multilingual Whisper Large v3 Turbo model once using Controls (approximately 627 MB, plus tokenizer files). This uses the compressed Core ML model and its matching Turbo tokenizer. Upgrading from Base requires this one-time download; existing Base files are left untouched. Model and tokenizer files are downloaded from Hugging Face. Speech inference runs locally with no speech API, analytics, or account. WhisperKit may attempt to fetch a tokenizer if local assets are corrupt; speech is not uploaded. The supported model path has been exercised with all networking denied.
 
 ## Build
 

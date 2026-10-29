@@ -224,6 +224,7 @@ struct DashboardView: View {
             UpdateSettingsView(updates: controller.updates).card()
             VStack(alignment: .leading, spacing: 12) {
                 Text("Ready when you are").font(.headline)
+                Text(SpeechEngine.modelName + " · on this Mac").font(.callout).foregroundStyle(.secondary)
                 Label(controller.accessibilityReady ? "Accessibility is enabled" : "Accessibility is required for automatic paste", systemImage: controller.accessibilityReady ? "checkmark.circle.fill" : "exclamationmark.circle").foregroundStyle(controller.accessibilityReady ? accent : .orange)
                 Label(!controller.fnShortcutsEnabled ? "Fn shortcuts disabled · custom shortcuts are available" : controller.fnReady ? "Fn shortcuts connected" : "Enable Accessibility to use Fn", systemImage: "keyboard").font(.callout)
                 Button("Open Accessibility settings") { controller.accessibility() }

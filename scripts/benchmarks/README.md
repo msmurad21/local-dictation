@@ -42,3 +42,9 @@ Qwen 1.7B: warm requests roughly 0.32–0.77 seconds; peak MLX allocation about 
 The release retains Apple's local model. These small tests do not establish that either Qwen variant would improve end-to-end latency or quality. Combined jargon/correction examples and some inferred procedures remain known quality gaps, including in the previous pipeline; no claim of universal cue recognition is made.
 
 The dashboard now records recording-stop to **paste event sent**, with separate decoding, cleanup and paste-wait durations. This does not confirm that the destination rendered the text. It includes audio finalization and contextual reprocessing, but excludes the 900 ms clipboard-restoration wait after the paste event. No timing or transcript data is uploaded.
+
+## Turbo upgrade, v0.14.0
+
+Switched to `openai_whisper-large-v3-v20240930_626MB` with the `openai/whisper-large-v3-turbo` tokenizer. The same 11.18-second synthetic paragraph transcribed in 2.33, 1.99 and 1.99 seconds, with networking blocked for the entire process. Loading took 1.27 seconds after preparation. This is slower than the earlier Base measurement (0.38–0.51 seconds).
+
+All three Turbo outputs retained the paragraph but appended an unspoken “Okay.” A second synthetic technical sample recognized SwiftUI, PostgreSQL and Redis, but appended “Thank you.” These small synthetic tests verify operation, not an accuracy advantage; real speech should be evaluated before claiming improved accuracy. The existing original-transcript view and recording retry remain available. Raw paragraph results are in `results/turbo-audio.jsonl`.
